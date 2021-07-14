@@ -39,8 +39,6 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
-
 KenCoin.py is a simple Discord bot with the sole purpose of tracking the number of KenCoins a user has.
 
 ### Built With
@@ -50,16 +48,12 @@ KenCoin.py is a simple Discord bot with the sole purpose of tracking the number 
 
 <!-- GETTING STARTED -->
 ## Getting Started
-
-To setup your own KenCoin bot:
-
 ### Prerequisites
 
 Python3
 * pip
-  ```sh
-# Windows
-py -3.8 -m pip install discord.py apscheduler git+https://github.com/Rapptz/discord-ext-menus
+  ```bash
+    py -3.8 -m pip install discord.py apscheduler git+https://github.com/Rapptz/discord-ext-menus
   ```
 
 ### Installation
