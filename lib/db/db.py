@@ -5,6 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 DB_PATH = "./data/db/database.db"
 BUILD_PATH = "./data/db/build.sql"
 
+
 cxn = connect(DB_PATH, check_same_thread=False)
 cur = cxn.cursor()
 
@@ -31,8 +32,8 @@ def close():
 
 def field(command, *values):
 	cur.execute(command, tuple(values))
-
-	if (fetch := cur.fetchone()) is not None:
+	fetch = cur.fetchone()
+	if (fetch is not None):
 		return fetch[0]
 
 def record(command, *values):

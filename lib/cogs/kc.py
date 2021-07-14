@@ -23,17 +23,27 @@ class Kencoin(Cog):
         if datetime.utcnow() > datetime.fromisoformat(kclock):
             await self.add_kc(message, coins, lvl)
         else:
-            await message.send(f"You claimed already since the last claim period. Your balance remains: {coins:,}KC.")
+            diff = datetime.fromisoformat(kclock) - datetime.utcnow()
+            print(diff.seconds)
+            timer = time.strftime("%Hh%Mmin", time.gmtime(diff.seconds))
+            await message.send(f"{timer} until your next claim. Your balance is: {coins:,}KC.")
 
     async def add_kc(self, message, coins, lvl):
         coins_to_add = randint(1, 3)
         
         db.execute("UPDATE ledger SET KC = KC + ?, Level = ?, KCLock = ? WHERE UserID = ?", 
-                    coins_to_add, lvl, (datetime.utcnow()+timedelta(seconds=79200)).isoformat(), message.author.id)
+                    coins_to_add, lvl, (datetime.utcnow()+timedelta(seconds=3600)).isoformat(), message.author.id)
         await message.send(f"KC claimed! Your balance is now: {coins+coins_to_add:,}KC.")
 
+    # async def update_nick(self, ctx, coins):
+    #     new_nick = ctx.author.nick + f" ({coins}KC)"
+    #     print(new_nick)
+    #     await ctx.author.edit(nick=new_nick)
+    #     await ctx.send(f"Values updated.")
+    #     print("Nick changed")
+
     @command(name="claim", aliases=["c"], brief="Claim a daily amount of KC")
-    @cooldown(1, 79200, BucketType.user)
+    # @cooldown(1, 3600, BucketType.user)
     async def claim_kc(self, ctx):
         await self.process_kc(ctx)
 
@@ -43,6 +53,11 @@ class Kencoin(Cog):
             timer = time.strftime("%Hh%Mmin", time.gmtime(exc.retry_after))
             await ctx.send(f"You've already claimed today. Try again in **{timer}**.")
 
+    # @command(name="test")
+    # async def test(self, ctx, member: Member, nick):
+    #     await member.edit(nick=nick)
+    #     await ctx.send(f'Nickname was changed for {member.mention} ')
+
     @command(name="wallet", aliases=["w"], brief="Check your current balance")
     async def display_wallet(self, ctx, target: Optional[Member]):
         target = target or ctx.author
@@ -51,8 +66,10 @@ class Kencoin(Cog):
 
         if coins is not None: 
             await ctx.send(f"{target.display_name}'s current balance: {coins:,}KC.")
+            #await self.update_nick(ctx, coins)
         else:
             await ctx.send(f"{target.display_name}'s wallet not found.")
+        
 
     @command(name="rank", aliases=["r"], brief="Check your rank")
     async def display_rank(self, ctx, target: Optional[Member]):

@@ -24,7 +24,7 @@ class HelpMenu(ListPageSource):
     def __init__(self, ctx, data):
         self.ctx = ctx
 
-        super().__init__(data, per_page=3)
+        super().__init__(data, per_page=8)
 
     async def write_page(self, menu, fields=[]):
         offset = (menu.current_page*self.per_page) + 1
@@ -50,7 +50,6 @@ class HelpMenu(ListPageSource):
         return await self.write_page(menu, fields)
 
 
-
 class Help(Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -67,14 +66,15 @@ class Help(Cog):
     @command(name="help", brief="Display the help menu")
     async def show_help(self, ctx, cmd: Optional[str]):
         if cmd is None:
-            menu = MenuPages(source = HelpMenu(ctx, list(self.bot.commands)),
-                            clear_reactions_after=True,
+            menu = MenuPages(source = HelpMenu(ctx, list(self.bot.commands)))
+                            #clear_reactions_after=True,
                             # delete_message_after=True,
-                            timeout=60.0) # Timeout requires .0, passed as a float
+                            #timeout=60.0) # Timeout requires .0, passed as a float
             await menu.start(ctx)
 
         else:
-            if (command := get(self.bot.commands, name=cmd)):
+            command = get(self.bot.commands, name=cmd)
+            if (command):
                 await self.cmd_help(ctx, command)
 
             else:

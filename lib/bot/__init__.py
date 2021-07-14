@@ -16,7 +16,7 @@ from discord.ext.commands import when_mentioned_or
 from ..db import db
 
 PREFIX = "!"
-OWNER_IDS = [61330577730576384, 117125514103095301]
+OWNER_IDS = [863215534069776405]
 COGS = [path.split("\\")[-1][:-3] for path in glob("./lib/cogs/*.py")]
 IGNORE_EXCEPTIONS = (CommandNotFound, BadArgument)
 
@@ -105,8 +105,8 @@ class Bot(BotBase):
 	async def on_error(self, err, *args, **kwargs):
 		if err == "on_command_error":
 			await args[0].send("Command error.")
-
-		await self.stdout.send("An error occured.")
+		else:
+			await self.stdout.send("An error occured.")
 		raise
 
 
