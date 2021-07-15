@@ -24,34 +24,37 @@ class Kencoin(Cog):
             await self.add_kc(message, coins, lvl)
         else:
             diff = datetime.fromisoformat(kclock) - datetime.utcnow()
-            print(diff.seconds)
             timer = time.strftime("%Hh%Mmin", time.gmtime(diff.seconds))
-            await message.send(f"{timer} until your next claim. Your balance is: {coins:,}KC.")
+            await message.send(f"Claim periods are every 3 hours, on the hour. There is **{timer}** until your next claim.")
 
     async def add_kc(self, message, coins, lvl):
-        coins_to_add = randint(1, 3)
-        
-        db.execute("UPDATE ledger SET KC = KC + ?, Level = ?, KCLock = ? WHERE UserID = ?", 
-                    coins_to_add, lvl, (datetime.utcnow()+timedelta(seconds=3600)).isoformat(), message.author.id)
-        await message.send(f"KC claimed! Your balance is now: {coins+coins_to_add:,}KC.")
+        coins_to_add = randint(1, 6)
+        t = datetime.utcnow()
+        if (t.hour % 3) != 0:
+            diff = 3 - (t.hour % 3)
+            next_claim = t.replace(hour=t.hour + diff, minute=0, second=0)
+        else:
+            next_claim = t.replace(hour=t.hour + 3, minute=0, second=0)
 
-    # async def update_nick(self, ctx, coins):
-    #     new_nick = ctx.author.nick + f" ({coins}KC)"
-    #     print(new_nick)
-    #     await ctx.author.edit(nick=new_nick)
-    #     await ctx.send(f"Values updated.")
-    #     print("Nick changed")
+        db.execute("UPDATE ledger SET KC = KC + ?, Level = ?, KCLock = ? WHERE UserID = ?", 
+                    coins_to_add, lvl, next_claim, message.author.id)
+
+        if (coins_to_add == 1):
+            await message.send(f"Oof, you only manage to get a **single** KC. Your balance is now: {coins+coins_to_add:,}KC.")
+        elif (coins_to_add < 6):
+            await message.send(f"You claim **{coins_to_add}**KC. Your balance is now: {coins+coins_to_add:,}KC.")
+        else:
+            await message.send(f"What luck! You claim **{coins_to_add}**KC. Your balance is now: {coins+coins_to_add:,}KC.")
 
     @command(name="claim", aliases=["c"], brief="Claim a daily amount of KC")
-    # @cooldown(1, 3600, BucketType.user)
     async def claim_kc(self, ctx):
         await self.process_kc(ctx)
 
-    @claim_kc.error
-    async def claim_kc_error(self, ctx, exc):
-        if isinstance(exc, CommandOnCooldown):
-            timer = time.strftime("%Hh%Mmin", time.gmtime(exc.retry_after))
-            await ctx.send(f"You've already claimed today. Try again in **{timer}**.")
+    # @claim_kc.error
+    # async def claim_kc_error(self, ctx, exc):
+    #     if isinstance(exc, CommandOnCooldown):
+    #         timer = time.strftime("%Hh%Mmin", time.gmtime(exc.retry_after))
+    #         await ctx.send(f"You've already claimed today. Try again in **{timer}**.")
 
     # @command(name="test")
     # async def test(self, ctx, member: Member, nick):
@@ -76,6 +79,8 @@ class Kencoin(Cog):
         target = target or ctx.author
 
         ids = db.column("SELECT UserID FROM ledger ORDER BY KC DESC")
+        for id in ids:
+            Client.get_user(self, id)
 
         await ctx.send(f"{target.display_name} is rank {ids.index(target.id)+1} of {len(ids)}")
 
