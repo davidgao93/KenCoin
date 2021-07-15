@@ -1,15 +1,14 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 from random import randint, choice
 from typing import Optional
 
-from discord import Member
+from discord import Member, Embed
 from discord.ext.commands import Cog, BucketType
-from discord.ext.commands import CheckFailure
 from discord.ext.commands import BadArgument
-from discord.ext.commands import command, cooldown, has_permissions
+from discord.ext.commands import command, cooldown
 from discord.ext.commands.errors import CommandOnCooldown
-from discord.errors import Forbidden, HTTPException
+from discord.errors import HTTPException
 
 from ..db import db
 
@@ -77,13 +76,34 @@ class Kencoin(Cog):
             await ctx.send(f"{target.display_name}'s wallet not found.")
         
 
-    @command(name="rank", aliases=["r"], brief="Check your rank")
+    @command(name="rank", aliases=["r"], brief="Check current rankings")
     async def display_rank(self, ctx, target: Optional[Member]):
         target = target or ctx.author
 
         ids = db.column("SELECT UserID FROM ledger ORDER BY KC DESC")
+        embed = Embed(title="Ranking", description=f"Here is the current leaderboard:",
+        colour=0x783729, timestamp=datetime.utcnow())
+        index = 1
+        for someid in ids:
+            coins = db.record("SELECT KC FROM ledger WHERE UserID = ?", someid) or (None)
+            #{ctx.bot.get_user(someid).display_name}
+            #f'Balance: **{coins:,}**KC'
+            if (coins is not None):
+                coins_str = str(coins)
+                display_name = f"{ctx.bot.get_user(someid).display_name}"
+                embed.add_field(
+                    name=f"Rank {index}: {display_name}", 
+                    value=f"Balance: **{coins_str[1:-2]}**KC", 
+                    inline=False)
 
-        await ctx.send(f"{target.display_name} is rank {ids.index(target.id)+1} of {len(ids)}")
+            if index == 5:
+                break
+            else:
+                index += 1
+        embed.set_footer(text=f"{target.display_name} is rank {ids.index(target.id)+1} of {len(ids)}")
+        await ctx.send(embed=embed)
+
+        # await ctx.send(f"{target.display_name} is rank {ids.index(target.id)+1} of {len(ids)}")
 
     @command(name="gamba", aliases=["g"], brief="Gamble <KC>, use <all> to gamble all.")
     @cooldown(1, 5, BucketType.user)
