@@ -118,29 +118,51 @@ class Kencoin(Cog):
         if (gamba_amt > coins):
             await ctx.send("You don't have enough KC!")
             return
-
+        embed = Embed(title="Gamble",
+        colour=0x783729, timestamp=datetime.utcnow())
+        embed.set_footer(text=f"Please gamble responsibly.")
+        
         rolls = [randint(1, 6) for i in range(5)]
         house_rolls = [randint(1, 6) for i in range(5)]
         roll_msg = " + ".join([str(r) for r in rolls]) + f" = **{sum(rolls)}**"
         house_roll_msg = " + ".join([str(r) for r in house_rolls]) + f" = **{sum(house_rolls)}**"
-        await ctx.send(f"You roll the following: " + roll_msg)
-        await ctx.send("The house rolls: " + house_roll_msg)
+        embed.add_field(name="You roll the following", value=roll_msg, inline=False)
+        embed.add_field(name="The 🤖 rolls", value=house_roll_msg, inline=False)
+
+        # Testing
+        # embed.add_field(name="🎲 You **lose!** 🎲", 
+        # value=f"Your balance is now: {coins-gamba_amt:,}KC. The KC are added to the pot valued at: *{amt+gamba_amt:,}KC*.",
+        # inline=False)
+        # embed.add_field(name="🎰 J A C K P O T 🎰", 
+        # value=f"Your balance is now: 999KC. The pot is now **reset**.",
+        # inline=False)
+        # embed.add_field(name="🎉 You **win!** 🎉", 
+        # value=f"Your balance is now: {coins+gamba_amt:,}KC.",
+        # inline=False)
+        # End testing
         
         if sum(rolls) == sum(house_rolls):
-            await ctx.send(f"It's a **tie!** Your balance remains: {coins:,}KC.")
+            embed.add_field(name="It's a 🙈 **tie!** 🙈", value=f"Your balance remains: {coins:,}KC.", inline=False)
         elif sum(rolls) < sum(house_rolls):
             db.execute("UPDATE ledger SET KC = KC - ? WHERE UserID = ?", gamba_amt, ctx.author.id)
             db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", gamba_amt)
-            await ctx.send(f"You **lose!** Your balance is now: {coins-gamba_amt:,}KC. The KC are added to the pot valued at: *{amt+gamba_amt:,}KC*.")
+            embed.add_field(name="🎲 You **lose!** 🎲", 
+            value=f"Your balance is now: {coins-gamba_amt:,}KC. The KC are added to the pot valued at: *{amt+gamba_amt:,}KC*.",
+            inline=False)
         elif sum(rolls) == 30:
             new_bal = coins + amt
             db.execute("UPDATE ledger SET KC = ? WHERE UserID = ?", new_bal, ctx.author.id)
             db.execute("UPDATE jackpot SET Amount = 0 WHERE Jackpot = 0")
-            await ctx.send(f"**J A C K P O T** You win the Jackpot! Your balance is now: {new_bal:,}KC. The pot is now reset.")
+            embed.add_field(name="🎰 J A C K P O T 🎰", 
+            value=f"Your balance is now: {new_bal:,}KC. The pot is now **reset**.",
+            inline=False)
         else:
             db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", gamba_amt, ctx.author.id)
-            await ctx.send(f"You **win!** Your balance is now: {coins+gamba_amt:,}KC.")
+            embed.add_field(name="🎉 You **win!** 🎉", 
+            value=f"Your balance is now: {coins+gamba_amt:,}KC.",
+            inline=False)
 
+        await ctx.send(embed=embed)
         db.commit()
 
     @roll_dice.error
