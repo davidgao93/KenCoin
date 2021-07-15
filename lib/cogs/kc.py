@@ -158,12 +158,18 @@ class Kencoin(Cog):
         fail = [
             "As you reach forward, you suddenly get a cramp and are unable to finish the slap",
             "You slip on a pebble",
-            "They were too agile and evade your slap"]
+            "They were too agile and evade your slap",
+            "Divine intervention steps in and prevents you from slapping",
+            "As you raise your hand, you sneeze and miss your target",
+            "You trip over a wandering rattlesnake"
+            ]
 
         success = [
             "They grovel at your feet",
             "They run away crying",
-            "They commit sudoku"
+            "They commit sudoku",
+            "They keel over from pain",
+            "Their soul is slapped from their body"
         ]
 
         if (rand_int >= 25):
