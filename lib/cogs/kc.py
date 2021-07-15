@@ -32,9 +32,12 @@ class Kencoin(Cog):
         t = datetime.utcnow()
         if (t.hour % 3) != 0:
             diff = 3 - (t.hour % 3)
-            next_claim = t.replace(hour=t.hour + diff, minute=0, second=0)
         else:
-            next_claim = t.replace(hour=t.hour + 3, minute=0, second=0)
+            diff = 3
+
+        new_hour = (0 if (t.hour+diff) > 23 else t.hour+diff)
+        new_day = (t.day if (t.hour+diff) < 23 else t.day+1)
+        next_claim = t.replace(day=new_day, hour=new_hour, minute=0, second=0)
 
         db.execute("UPDATE ledger SET KC = KC + ?, Level = ?, KCLock = ? WHERE UserID = ?", 
                     coins_to_add, lvl, next_claim, message.author.id)
@@ -79,8 +82,6 @@ class Kencoin(Cog):
         target = target or ctx.author
 
         ids = db.column("SELECT UserID FROM ledger ORDER BY KC DESC")
-        for id in ids:
-            Client.get_user(self, id)
 
         await ctx.send(f"{target.display_name} is rank {ids.index(target.id)+1} of {len(ids)}")
 
@@ -135,19 +136,24 @@ class Kencoin(Cog):
             await ctx.send(f"In efforts to prevent addiction, try again in **{timer}**.")
 
     @command(name="slap", aliases=["s"], brief="Slaps [user] and attempts to steal their KC")
-    @cooldown(1, 3600, BucketType.user)
+    #@cooldown(1, 3600, BucketType.user)
     async def slap_member(self, ctx, member: Member, *, reason: Optional[str] = "no reason"):
-
+        
         if member == ctx.author:
             await ctx.send("Now why the hell would you want to do that?")
             return
+        author_coins, author_lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", ctx.author.id)
+        target_coins, target_lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", member.id)
 
-        coins, lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", member.id)
-        if (coins <= 3):
+        if (author_coins < 1):
+            await ctx.send(f"You don't have the moral high ground to slap {member.display_name}!")
+            return
+
+        if (target_coins <= 3):
             await ctx.send("This person has almost no coins, so you spare them... for now.")
             return
 
-        rand_int = randint(0, 10)
+        rand_int = randint(0, 100)
         tribute = randint(1, 3)
         fail = [
             "As you reach forward, you suddenly get a cramp and are unable to finish the slap",
@@ -160,19 +166,20 @@ class Kencoin(Cog):
             "They commit sudoku"
         ]
 
-        if (rand_int >= 5):
-            db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", tribute, ctx.author.id)
+        if (rand_int >= 75):
+            db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", tribute - 1, ctx.author.id)
             db.execute("UPDATE ledger SET KC = KC - ? WHERE UserID = ?", tribute, member.id)
-            db.commit()
+            
             await ctx.send(f"{ctx.author.display_name} slapped {member.mention} for {reason}! " +
             f"{choice((success[0], success[1], success[2]))}, dropping {tribute} KenCoin(s) that {ctx.author.display_name} picks up!")
         else:
+            db.execute("UPDATE ledger SET KC = KC - 1 WHERE UserID = ?", ctx.author.id)
             await ctx.send(f"{choice((fail[0], fail[1], fail[2]))}!")
-
+        db.commit()
     @slap_member.error
     async def slap_member_error(self, ctx, exc):
         if isinstance(exc, BadArgument):
-            await ctx.send("Member does not exist.")
+            await ctx.send("You slap the air, this makes you really tired for some reason.")
 
         elif isinstance(exc, CommandOnCooldown):
             timer = time.strftime("%Mmin", time.gmtime(exc.retry_after))
@@ -198,14 +205,14 @@ class Kencoin(Cog):
         await ctx.send(f"{ctx.author.display_name} gives {member.mention} just the tip! The reason? {reason}! " +
         f"{member.display_name} graciously accepts.")
 
-    @slap_member.error
+    @tip_member.error
     async def slap_member_error(self, ctx, exc):
         if isinstance(exc, BadArgument):
-            await ctx.send("Member does not exist.")
+            await ctx.send("You try to tip, but it seems there's nobody there.")
 
         elif isinstance(exc, CommandOnCooldown):
             timer = time.strftime("%Mmin", time.gmtime(exc.retry_after))
-            await ctx.send(f"Your arms are too tired to slap right now. Try again in **{timer}**.")
+            await ctx.send(f"You're being too generous. Please try again in **{timer}**.")
 
     @Cog.listener()
     async def on_ready(self):
