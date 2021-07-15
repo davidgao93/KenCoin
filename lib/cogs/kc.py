@@ -136,8 +136,8 @@ class Kencoin(Cog):
             await ctx.send(f"In efforts to prevent addiction, try again in **{timer}**.")
 
     @command(name="slap", aliases=["s"], brief="Slaps [user] and attempts to steal their KC")
-    #@cooldown(1, 3600, BucketType.user)
-    async def slap_member(self, ctx, member: Member, *, reason: Optional[str] = "no reason"):
+    @cooldown(1, 3600, BucketType.user)
+    async def slap_member(self, ctx, member: Member, *, reason: Optional[str] = "being a weeb"):
         
         if member == ctx.author:
             await ctx.send("Now why the hell would you want to do that?")
@@ -146,7 +146,7 @@ class Kencoin(Cog):
         target_coins, target_lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", member.id)
 
         if (author_coins < 1):
-            await ctx.send(f"You don't have the moral high ground to slap {member.display_name}!")
+            await ctx.send(f"You don't have the moral high ground to slap {member.display_name}! Try again when you have some KC.")
             return
 
         if (target_coins <= 3):
@@ -166,15 +166,16 @@ class Kencoin(Cog):
             "They commit sudoku"
         ]
 
-        if (rand_int >= 75):
+        if (rand_int >= 25):
             db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", tribute - 1, ctx.author.id)
             db.execute("UPDATE ledger SET KC = KC - ? WHERE UserID = ?", tribute, member.id)
-            
+            hit_msg = choice(success)
             await ctx.send(f"{ctx.author.display_name} slapped {member.mention} for {reason}! " +
-            f"{choice((success[0], success[1], success[2]))}, dropping {tribute} KenCoin(s) that {ctx.author.display_name} picks up!")
+            f"{hit_msg}, dropping **{tribute}**KC that {ctx.author.display_name} pockets!")
         else:
+            hit_msg = choice(fail)
             db.execute("UPDATE ledger SET KC = KC - 1 WHERE UserID = ?", ctx.author.id)
-            await ctx.send(f"{choice((fail[0], fail[1], fail[2]))}!")
+            await ctx.send(f"{hit_msg}!")
         db.commit()
     @slap_member.error
     async def slap_member_error(self, ctx, exc):
