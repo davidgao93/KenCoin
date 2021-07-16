@@ -1,25 +1,13 @@
-from random import choice, randint
-						  
-from typing import Optional
-
-from discord import Member, Embed
-from discord.ext.commands import Cog, BucketType
-from discord.ext.commands import command, cooldown
+from discord import Embed
+from discord.ext.commands import Cog
+from discord.ext.commands import command
 from datetime import datetime
-from discord.ext.commands.errors import CommandOnCooldown
-
+from aiohttp import request
 
 class Fun(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.version = bot.VERSION
-    # @command()
-    # async def hello(self, ctx):
-    #     await ctx.send(f"Hi {ctx.author.mention}")
-		
-    # @command(name="hello", aliases=["hi"], brief="If you're lonely")
-    # async def say_hello(self, ctx):
-    #     await ctx.send(f"{choice(('Hello', 'Hi', 'Hey', 'Hiya'))} {ctx.author.mention}!")
 
     @command(name="version", aliases=["v"], brief="See updates")
     async def say_version(self, ctx):
@@ -33,11 +21,22 @@ class Fun(Cog):
         embed.set_footer(text=f"Version {self.version}")
         await ctx.send(embed=embed)
 
+    @command(name="pull", aliases=["p"], brief="See a pic of a cute anime girl")
+    async def waifu(self, ctx):
+        URL = "https://api.waifu.pics/sfw/waifu"
+
+        async with request("GET", URL) as response:
+            if response.status == 200:
+                data = await response.json()
+                await ctx.send(data["url"])
+
+            else:
+                await ctx.send(f"API is down, status: {response.status}")
 
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("fun")
+            self.bot.cogs_ready.ready_up("Fun")
 
 
 def setup(bot):

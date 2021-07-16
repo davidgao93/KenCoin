@@ -25,7 +25,7 @@ class Meta(Cog):
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("meta")
+            self.bot.cogs_ready.ready_up("Meta")
 
 
 def setup(bot):

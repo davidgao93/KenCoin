@@ -24,7 +24,7 @@ class HelpMenu(ListPageSource):
     def __init__(self, ctx, data):
         self.ctx = ctx
 
-        super().__init__(data, per_page=8)
+        super().__init__(data, per_page=9)
 
     async def write_page(self, menu, fields=[]):
         offset = (menu.current_page*self.per_page) + 1
@@ -84,7 +84,7 @@ class Help(Cog):
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("help")
+            self.bot.cogs_ready.ready_up("Help")
 
 def setup(bot):
     bot.add_cog(Help(bot))

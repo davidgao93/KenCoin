@@ -66,8 +66,8 @@ class Bot(BotBase):
 					((member.id,) for member in self.guild.members))
 
 		stored_members = db.column("SELECT UserID FROM ledger")
-		for id in stored_members:
-			print(self.guild.get_member(id))
+		# for id in stored_members:
+		# 	print(self.guild.get_member(id))
 
 		# to_remove = []
 		# stored_members = db.column("SELECT UserID FROM ledger")
@@ -133,9 +133,8 @@ class Bot(BotBase):
 
 	async def on_ready(self):
 		if not self.ready:
-			self.guild = self.get_guild(431301983475990528)
-			#self.scheduler.add_job(self.print_message, CronTrigger(second="0,15,30,45"))
-			self.stdout = self.get_channel(864691394232844294)
+			self.guild = self.get_guild(699690514051629086)
+			self.stdout = self.get_channel(699690514051629089)
 			self.scheduler.start()
 			self.update_db()
 

@@ -140,7 +140,7 @@ class Kencoin(Cog):
         # value=f"Your balance is now: {coins+gamba_amt:,}KC.",
         # inline=False)
         # End testing
-        
+
         if sum(rolls) == sum(house_rolls):
             embed.add_field(name="It's a 🙈 **tie!** 🙈", value=f"Your balance remains: {coins:,}KC.", inline=False)
         elif sum(rolls) < sum(house_rolls):
@@ -266,7 +266,7 @@ class Kencoin(Cog):
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("kc")
+            self.bot.cogs_ready.ready_up("KC")
 
     @Cog.listener()
     async def on_message(self, message):
