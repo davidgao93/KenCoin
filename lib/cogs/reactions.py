@@ -8,7 +8,7 @@ class Reactions(Cog):
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("Reactions")
+            self.bot.cogs_ready.ready_up("reactions")
 
     @Cog.listener()
     async def on_reaction_add(self, reaction, user):

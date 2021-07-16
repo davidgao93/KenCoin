@@ -105,13 +105,26 @@ class Kencoin(Cog):
 
         # await ctx.send(f"{target.display_name} is rank {ids.index(target.id)+1} of {len(ids)}")
 
-    @command(name="gamba", aliases=["g"], brief="Gamble <KC>, use <all> to gamble all.")
+    async def roulette(self, ctx, coins, rr):
+        if (rr == "all"):
+            gamba_amt = coins
+        else:
+            gamba_amt = int(rr)
+
+        if (gamba_amt > coins):
+            await ctx.send("You don't have enough KC!")
+            return
+
+    @command(name="gamba", aliases=["g"], brief="Gamble <KC>, use <r> <amt>/<all> for Russian Roulette, <all> to gamble all.")
     @cooldown(1, 5, BucketType.user)
-    async def roll_dice(self, ctx, kc: str):
-        coins, lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", ctx.author.id)
-        jackpot, amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0")
+    async def roll_dice(self, ctx, kc: str, rr: Optional[str]):
+        coins, lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", ctx.author.id) # both, unsued lvl so can be int instead of tuple
+        jackpot, amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") # same here
         if (kc == "all"):
             gamba_amt = coins
+        elif (kc == "r"):
+            self.roulette(ctx, coins, rr)
+            return
         else:
             gamba_amt = int(kc)
 
@@ -128,18 +141,6 @@ class Kencoin(Cog):
         house_roll_msg = " + ".join([str(r) for r in house_rolls]) + f" = **{sum(house_rolls)}**"
         embed.add_field(name="You roll the following", value=roll_msg, inline=False)
         embed.add_field(name="The 🤖 rolls", value=house_roll_msg, inline=False)
-
-        # Testing
-        # embed.add_field(name="🎲 You **lose!** 🎲", 
-        # value=f"Your balance is now: {coins-gamba_amt:,}KC. The KC are added to the pot valued at: *{amt+gamba_amt:,}KC*.",
-        # inline=False)
-        # embed.add_field(name="🎰 J A C K P O T 🎰", 
-        # value=f"Your balance is now: 999KC. The pot is now **reset**.",
-        # inline=False)
-        # embed.add_field(name="🎉 You **win!** 🎉", 
-        # value=f"Your balance is now: {coins+gamba_amt:,}KC.",
-        # inline=False)
-        # End testing
 
         if sum(rolls) == sum(house_rolls):
             embed.add_field(name="It's a 🙈 **tie!** 🙈", value=f"Your balance remains: {coins:,}KC.", inline=False)
@@ -266,7 +267,7 @@ class Kencoin(Cog):
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("KC")
+            self.bot.cogs_ready.ready_up("kc")
 
     @Cog.listener()
     async def on_message(self, message):

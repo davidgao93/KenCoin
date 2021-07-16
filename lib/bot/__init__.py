@@ -139,6 +139,7 @@ class Bot(BotBase):
 			self.update_db()
 
 			while not self.cogs_ready.all_ready():
+				print("Readying cogs...")
 				await sleep(0.5)
 
 			print("KenCoin initialized.")

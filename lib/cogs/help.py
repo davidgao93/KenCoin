@@ -84,7 +84,7 @@ class Help(Cog):
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("Help")
+            self.bot.cogs_ready.ready_up("help")
 
 def setup(bot):
     bot.add_cog(Help(bot))
