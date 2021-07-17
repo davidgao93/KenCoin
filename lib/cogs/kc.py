@@ -105,25 +105,61 @@ class Kencoin(Cog):
 
         # await ctx.send(f"{target.display_name} is rank {ids.index(target.id)+1} of {len(ids)}")
 
-    async def roulette(self, ctx, coins, rr):
-        if (rr == "all"):
-            gamba_amt = coins
+    async def roulette(self, ctx, coins, rrkc, bullets):
+        if (rrkc == "all"):
+            gamba_amt = int(coins)
+        elif (rrkc == 0): 
+            await ctx.send("Pointless!")
+            return
         else:
-            gamba_amt = int(rr)
+            if rrkc is not None:
+                gamba_amt = int(rrkc)
+            else:
+                await ctx.send("Missing wager amount.")
+                return
 
         if (gamba_amt > coins):
             await ctx.send("You don't have enough KC!")
             return
 
-    @command(name="gamba", aliases=["g"], brief="Gamble <KC>, use <r> <amt>/<all> for Russian Roulette, <all> to gamble all.")
-    @cooldown(1, 5, BucketType.user)
-    async def roll_dice(self, ctx, kc: str, rr: Optional[str]):
+        if (bullets is None):
+            await ctx.send("Missing bullets parameter.")
+            return
+
+        if (bullets >= 6):
+            await ctx.send("A guaranteed death is just not that interesting.")
+        elif (bullets < 1):
+            await ctx.send("The chamber cannot be empty.")
+        else:
+            embed = Embed(title="🔫 Russian Roulette 🔫 ",
+            colour=0x783729, timestamp=datetime.utcnow())
+            embed.set_footer(text=f"Please gamble responsibly")
+
+            roll = randint(0, 120)
+            if roll >= 20 * bullets:
+                multiplier = 6/(6-bullets)
+                award = int(gamba_amt * multiplier)
+                embed.add_field(name="You cock the trigger and pull...", value="🎊 It doesn't fire! 🎊", inline=False)
+                embed.add_field(name=f"You win **{award}**KC", value=f"Your balance is now **{coins+award}**KC", inline=False)
+                db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", award, ctx.author.id)
+            else:
+                embed.add_field(name="You cock the trigger and pull...", value="💀 Oh dear, you are dead! 💀", inline=False)
+                embed.add_field(name=f"You lose **{rrkc}**KC.", value=f"Your balance is now **{coins-gamba_amt}**KC, it's added to the pot.", inline=False)
+                db.execute("UPDATE ledger SET KC = KC - ? WHERE UserID = ?", gamba_amt, ctx.author.id)
+                db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", gamba_amt)
+            await ctx.send(embed=embed)
+            db.commit()
+
+
+    @command(name="gamba", aliases=["g"], brief="Gamble <KC>, use <rr> <amt>/<all> for Russian Roulette, <all> to gamble all.")
+    @cooldown(1, 3, BucketType.user)
+    async def roll_dice(self, ctx, kc: str, rrkc: Optional[str], bullets: Optional[int]):
         coins, lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", ctx.author.id) # both, unsued lvl so can be int instead of tuple
         jackpot, amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") # same here
         if (kc == "all"):
             gamba_amt = coins
-        elif (kc == "r"):
-            self.roulette(ctx, coins, rr)
+        elif (kc == "rr"):
+            await self.roulette(ctx, coins, rrkc, bullets)
             return
         else:
             gamba_amt = int(kc)
@@ -131,9 +167,12 @@ class Kencoin(Cog):
         if (gamba_amt > coins):
             await ctx.send("You don't have enough KC!")
             return
+        elif (gamba_amt == 0):
+            await ctx.send("Pointless!")
+            return
         embed = Embed(title="Gamble",
         colour=0x783729, timestamp=datetime.utcnow())
-        embed.set_footer(text=f"Please gamble responsibly.")
+        embed.set_footer(text=f"Please gamble responsibly")
         
         rolls = [randint(1, 6) for i in range(5)]
         house_rolls = [randint(1, 6) for i in range(5)]
