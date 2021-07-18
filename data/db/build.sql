@@ -11,10 +11,20 @@ CREATE TABLE IF NOT EXISTS jackpot (
 --INSERT INTO jackpot
 --VALUES (0, 50);
 
+-- DROP TABLE ledger;
+
 CREATE TABLE IF NOT EXISTS ledger (
 	UserID integer PRIMARY KEY, 
 	UserText text,
 	KC integer DEFAULT 0,
 	Level integer DEFAULT 0,
+	Mined integer DEFAULT 0,
 	KCLock text DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ALTER TABLE ledger
+-- ADD Mined integer DEFAULT 0;
+
+-- UPDATE ledger
+-- SET KC = 1000
+-- WHERE UserID = 61330577730576384;

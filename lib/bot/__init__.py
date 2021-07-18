@@ -3,7 +3,6 @@ from datetime import datetime
 from glob import glob
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 from discord.ext.commands import Bot as BotBase
 from discord.ext.commands import (CommandNotFound, BadArgument, MissingRequiredArgument, CommandOnCooldown)
@@ -17,12 +16,11 @@ from ..db import db
 
 PREFIX = "!"
 OWNER_IDS = [863215534069776405]
-COGS = [path.split("\\")[-1][:-3] for path in glob("./lib/cogs/*.py")]
+COGS = [path.split("/")[-1][:-3] for path in glob("./lib/cogs/*.py")]
 IGNORE_EXCEPTIONS = (CommandNotFound, BadArgument)
 
 def get_prefix(bot, message):
 	return when_mentioned_or(PREFIX)(bot, message)
-
 
 class Ready(object):
 	def __init__(self):
@@ -59,13 +57,13 @@ class Bot(BotBase):
 			print(f"  {cog} cog loaded!")
 
 	def update_db(self):
-		db.multiexec("INSERT OR IGNORE INTO guilds (GuildID) VALUES (?)", 
-					((guild.id,) for guild in self.guilds))
+		# db.multiexec("INSERT OR IGNORE INTO guilds (GuildID) VALUES (?)", 
+		# 			((guild.id,) for guild in self.guilds))
 
-		db.multiexec("INSERT OR IGNORE INTO ledger (UserID) VALUES (?)",
-					((member.id,) for member in self.guild.members))
+		# db.multiexec("INSERT OR IGNORE INTO ledger (UserID) VALUES (?)",
+		# 			((member.id,) for member in self.guild.members))
 
-		stored_members = db.column("SELECT UserID FROM ledger")
+		# stored_members = db.column("SELECT UserID FROM ledger")
 		# for id in stored_members:
 		# 	print(self.guild.get_member(id))
 
@@ -80,8 +78,10 @@ class Bot(BotBase):
 
 		db.commit()
 
-	def run(self, version):
+	def run(self, version, gid, cid):
 		self.VERSION = version
+		self.GID = gid
+		self.CID = cid
 
 		print("Running setup...")
 		self.setup()
@@ -105,8 +105,6 @@ class Bot(BotBase):
 	async def on_error(self, err, *args, **kwargs):
 		if err == "on_command_error":
 			await args[0].send("Command error.")
-		else:
-			await self.stdout.send("An error occured.")
 		raise
 
 
@@ -133,8 +131,8 @@ class Bot(BotBase):
 
 	async def on_ready(self):
 		if not self.ready:
-			self.guild = self.get_guild(699690514051629086)
-			self.stdout = self.get_channel(699690514051629089)
+			self.guild = self.get_guild(self.GID)
+			self.stdout = self.get_channel(self.CID)
 			self.scheduler.start()
 			self.update_db()
 

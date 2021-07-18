@@ -9,24 +9,42 @@ from discord.ext.commands import BadArgument
 from discord.ext.commands import command, cooldown
 from discord.ext.commands.errors import CommandOnCooldown
 from discord.errors import HTTPException
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from ..db import db
 
 class Kencoin(Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.scheduler = AsyncIOScheduler()
+        self.auto_print()
+        self.scheduler.start()
 
+    def mine_kc(self):
+        ids = db.column("SELECT UserID FROM ledger ORDER BY Level DESC")
+
+        for uid in ids:
+            coins, lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", uid)
+            if (lvl != 0 and not None):
+                mine_amt = lvl * randint(1, 6)
+                print(f"{uid} mined {mine_amt} coins")
+                db.execute("UPDATE ledger SET Mined = Mined + ? WHERE UserID = ?", mine_amt, uid)
+                db.commit()
+    def auto_print(self):
+        # self.scheduler.add_job(self.mine_kc, CronTrigger(second="0, 15, 30, 45"))
+        self.scheduler.add_job(self.mine_kc, CronTrigger(hour="*"))
     async def process_kc(self, message):
-        coins, lvl, kclock = db.record("SELECT KC, Level, KCLock FROM ledger WHERE UserID = ?", message.author.id)
+        coins, lvl, kclock, kc_mined = db.record("SELECT KC, Level, KCLock, Mined FROM ledger WHERE UserID = ?", message.author.id)
 
         if datetime.utcnow() > datetime.fromisoformat(kclock):
-            await self.add_kc(message, coins, lvl)
+            await self.add_kc(message, coins, lvl, kc_mined)
         else:
             diff = datetime.fromisoformat(kclock) - datetime.utcnow()
             timer = time.strftime("%Hh%Mmin", time.gmtime(diff.seconds))
             await message.send(f"Claim periods are every 3 hours, on the hour. There is **{timer}** until your next claim.")
 
-    async def add_kc(self, message, coins, lvl):
+    async def add_kc(self, message, coins, lvl, kc_mined):
         coins_to_add = randint(1, 6)
         t = datetime.utcnow()
         if (t.hour % 3) != 0:
@@ -37,20 +55,65 @@ class Kencoin(Cog):
         new_hour = (0 if (t.hour+diff) > 23 else t.hour+diff)
         new_day = (t.day if (t.hour+diff) < 23 else t.day+1)
         next_claim = t.replace(day=new_day, hour=new_hour, minute=0, second=0)
+        diff = next_claim - datetime.utcnow()
+        timer = time.strftime("%Hh%Mmin", time.gmtime(diff.seconds))
 
         db.execute("UPDATE ledger SET KC = KC + ?, Level = ?, KCLock = ? WHERE UserID = ?", 
                     coins_to_add, lvl, next_claim, message.author.id)
-
+        embed = Embed(title="⛏️ You check your mining progress... ⛏️",
+        colour=0x783729, timestamp=datetime.utcnow())
+        embed.set_footer(text=f"Next claim is in {timer}")
         if (coins_to_add == 1):
-            await message.send(f"Oof, you only manage to get a **single** KC. Your balance is now: {coins+coins_to_add:,}KC.")
+            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/699690514051629089/866085879394467871/Coins_1.png")
+            embed.add_field(name="Oof, you only manage to get a **single** KC!",
+            value=f"Your balance is now: **{coins+coins_to_add:,}**KC.",
+            inline="False")
         elif (coins_to_add < 6):
-            await message.send(f"You claim **{coins_to_add}**KC. Your balance is now: {coins+coins_to_add:,}KC.")
+            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/699690514051629089/866086342014402620/Coins_3.png")
+            embed.add_field(name=f"You mined **{coins_to_add}**KC!",
+            value=f"Your balance is now: **{coins+coins_to_add:,}**KC.",
+            inline="False")
         else:
-            await message.send(f"What luck! You claim **{coins_to_add}**KC. Your balance is now: {coins+coins_to_add:,}KC.")
+            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/699690514051629089/866086482641289268/Coins_1000.png")
+            embed.add_field(name=f"What luck! You mined **{coins_to_add}**KC!",
+            value=f"Your balance is now: **{coins+coins_to_add:,}**KC.",
+            inline="False")
+
+        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte"]
+        gpu_tier = tiers[int(lvl)]
+        if (gpu_tier == "None"):
+            embed.add_field(
+                name=f"You currently don't have an upgraded GPU!",
+                value=f"Purchase an upgraded GPU with KC using the !upgrade command.",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name=f"Your GPU tier is currently: {gpu_tier}",
+                value=f"Mining a total of {kc_mined} since your last claim. They are added to your balance.",
+                inline=False)
+
+            db.execute("UPDATE ledger SET KC = KC + ?, Mined = 0 WHERE UserID = ?", 
+                kc_mined, message.author.id)
+                
+
+        await message.send(embed=embed)
 
     @command(name="claim", aliases=["c"], brief="Claim a daily amount of KC")
     async def claim_kc(self, ctx):
         await self.process_kc(ctx)
+
+    @command(name="upgrade", aliases=["u"], brief="Upgrade your graphics card")
+    async def upgrade(self, ctx):
+        coins, lvl = db.record("SELECT KC, Level FROM ledger WHERE UserID = ?", ctx.author.id)
+        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte"]
+        costs = [0, 10, 50, 200, 500, 1000, 1500, 3000, 5000, 10000, 50000]
+        if (lvl == 0):
+            await ctx.send(f"Your current GPU is not upgraded. Upgrading will cost **10**KC. React with any emoji to proceed.")
+        elif (lvl == 10):
+            await ctx.send(f"You have the best GPU KC can buy, Kenyte tier. There are no more upgrades possible for now.")
+        else:
+            await ctx.send(f"Your current GPU is {tiers[lvl]} tier. Upgrading will cost **{costs[lvl+1]}**KC. React with any emoji to proceed.")
 
     # @claim_kc.error
     # async def claim_kc_error(self, ctx, exc):
@@ -137,11 +200,11 @@ class Kencoin(Cog):
 
             roll = randint(0, 120)
             if roll >= 20 * bullets:
-                multiplier = 6/(6-bullets)
+                multiplier = (6/(6-bullets))*1.1
                 award = int(gamba_amt * multiplier)
                 embed.add_field(name="You cock the trigger and pull...", value="🎊 It doesn't fire! 🎊", inline=False)
-                embed.add_field(name=f"You win **{award}**KC", value=f"Your balance is now **{coins+award}**KC", inline=False)
-                db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", award, ctx.author.id)
+                embed.add_field(name=f"You win **{award}**KC.", value=f"Your balance is now **{coins+award-gamba_amt}**KC.", inline=False)
+                db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", award-gamba_amt, ctx.author.id)
             else:
                 embed.add_field(name="You cock the trigger and pull...", value="💀 Oh dear, you are dead! 💀", inline=False)
                 embed.add_field(name=f"You lose **{rrkc}**KC.", value=f"Your balance is now **{coins-gamba_amt}**KC, it's added to the pot.", inline=False)
@@ -197,10 +260,24 @@ class Kencoin(Cog):
             value=f"Your balance is now: {new_bal:,}KC. The pot is now **reset**.",
             inline=False)
         else:
-            db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", gamba_amt, ctx.author.id)
-            embed.add_field(name="🎉 You **win!** 🎉", 
-            value=f"Your balance is now: {coins+gamba_amt:,}KC.",
-            inline=False)
+            bonus_dice = int((gamba_amt / 10) + ((gamba_amt / 10) * 0.2))
+            bonus_kc = [randint(1,6) for i in range(bonus_dice)]
+            bonus_multiplier = gamba_amt/10*0.05
+            bonus_total = int((sum(bonus_kc)+sum(bonus_kc)*bonus_multiplier))
+            if (bonus_dice > 0):
+                bonus_msg = " + ".join([str(r) for r in bonus_kc]) + f" = {sum(bonus_kc)} x bonus = **{bonus_total}**KC awarded! Your new balance is **{gamba_amt+bonus_total+coins:,}**KC."
+                embed.add_field(name="🎉 You **win!** 🎉", 
+                value=f"Your balance is now: {coins+gamba_amt:,}KC.",
+                inline=False)
+                embed.add_field(name=f"You receive **{bonus_dice}** bonus dice for betting big. You roll the following:",
+                value=bonus_msg,
+                inline=False)
+                db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", gamba_amt+bonus_total, ctx.author.id)
+            else:
+                embed.add_field(name="🎉 You **win!** 🎉", 
+                value=f"Your balance is now: {coins+gamba_amt:,}KC.",
+                inline=False)
+                db.execute("UPDATE ledger SET KC = KC + ? WHERE UserID = ?", gamba_amt, ctx.author.id)
 
         await ctx.send(embed=embed)
         db.commit()
@@ -218,7 +295,7 @@ class Kencoin(Cog):
             await ctx.send(f"In efforts to prevent addiction, try again in **{timer}**.")
 
     @command(name="slap", aliases=["s"], brief="Slaps [user] and attempts to steal their KC")
-    @cooldown(1, 3600, BucketType.user)
+    @cooldown(1, 7200, BucketType.user)
     async def slap_member(self, ctx, member: Member, *, reason: Optional[str] = "being a weeb"):
         
         if member == ctx.author:
@@ -231,12 +308,15 @@ class Kencoin(Cog):
             await ctx.send(f"You don't have the moral high ground to slap {member.display_name}! Try again when you have some KC.")
             return
 
-        if (target_coins <= 3):
-            await ctx.send("This person has almost no coins, so you spare them... for now.")
+        if (target_coins == 0):
+            await ctx.send(f"As you raise your hand, you stop because you feel bad for {member.display_name} because of how broke they are.")
             return
+        elif (target_coins <= 3):
+            tribute = randint(1, target_coins)
+        else:
+            tribute = randint(1, 3)
 
         rand_int = randint(0, 100)
-        tribute = randint(1, 3)
         fail = [
             "As you reach forward, you suddenly get a cramp and are unable to finish the slap",
             "You slip on a pebble",

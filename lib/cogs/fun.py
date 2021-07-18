@@ -13,9 +13,10 @@ class Fun(Cog):
     async def say_version(self, ctx):
         embed = Embed(title="KenCoin", description=f"Update __{self.version}__",
         colour=0x783729, timestamp=datetime.utcnow())
-        fields = [("New command !version | !v", "Returns the current version and new features", False),
-        ("Claim changes", "Claims are now reset on the hour, every 3 hours. Will be in effect starting after your next claim.", False),
-        ("Nerf to !slap", "Slaps now cost 1 KC, but are 50% more likely to succeed than before.", False)]
+        fields = [("New command !g rr <amt> <bullets>", "Loads a 6 chamber revolver with 1-5 bullets. Has a base multiplier MULTIPLIED by an additional 5%!", False),
+        ("Gamble changes", "Gambles will now reward bonus dice in multiples of 10, with more bonus dice awarded per multiple of 10KC gambled.", False),
+        ("Buff to !slap", "Can now slap anyone with a positive KC value (you must also have 1 KC), they no longer cost KC, but the CD has increased.", False),
+        ("!u", "Upgrade your graphics card to mine KC in the background while you do other stuff!", False)]
         for name, value, inline in fields:
             embed.add_field(name=name, value=value, inline=inline)
         embed.set_footer(text=f"Version {self.version}")
