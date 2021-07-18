@@ -21,16 +21,18 @@ def syntax(command):
 
 
 class HelpMenu(ListPageSource):
-    def __init__(self, ctx, data):
+    def __init__(self, bot, ctx, data):
+        self.bot = bot
         self.ctx = ctx
-
+        self.coin = bot.COIN
+        self.cs = bot.CS
         super().__init__(data, per_page=10)
 
     async def write_page(self, menu, fields=[]):
         offset = (menu.current_page*self.per_page) + 1
         len_data = len(self.entries)
-        embed = Embed(title="KenCoin",
-                    description="KenCoin is not liable for personal loss of wealth.",
+        embed = Embed(title=f"{self.coin}",
+                    description=f"{self.coin} is not liable for personal loss of wealth.",
                     colour=0x783729,
                     timestamp=datetime.utcnow())
         embed.set_thumbnail(url=self.ctx.guild.me.avatar_url)
@@ -66,7 +68,7 @@ class Help(Cog):
     @command(name="help", brief="Display the help menu")
     async def show_help(self, ctx, cmd: Optional[str]):
         if cmd is None:
-            menu = MenuPages(source = HelpMenu(ctx, list(self.bot.commands)))
+            menu = MenuPages(source = HelpMenu(self.bot, ctx, list(self.bot.commands)))
                             #clear_reactions_after=True,
                             # delete_message_after=True,
                             #timeout=60.0) # Timeout requires .0, passed as a float

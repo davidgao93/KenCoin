@@ -16,7 +16,7 @@ from ..db import db
 
 PREFIX = "!"
 OWNER_IDS = [863215534069776405]
-COGS = [path.split("/")[-1][:-3] for path in glob("./lib/cogs/*.py")]
+COGS = [path.split("\\")[-1][:-3] for path in glob("./lib/cogs/*.py")]
 IGNORE_EXCEPTIONS = (CommandNotFound, BadArgument)
 
 def get_prefix(bot, message):
@@ -57,11 +57,11 @@ class Bot(BotBase):
 			print(f"  {cog} cog loaded!")
 
 	def update_db(self):
-		# db.multiexec("INSERT OR IGNORE INTO guilds (GuildID) VALUES (?)", 
-		# 			((guild.id,) for guild in self.guilds))
+		db.multiexec("INSERT OR IGNORE INTO guilds (GuildID) VALUES (?)", 
+					((guild.id,) for guild in self.guilds))
 
-		# db.multiexec("INSERT OR IGNORE INTO ledger (UserID) VALUES (?)",
-		# 			((member.id,) for member in self.guild.members))
+		db.multiexec("INSERT OR IGNORE INTO ledger (UserID) VALUES (?)",
+					((member.id,) for member in self.guild.members))
 
 		# stored_members = db.column("SELECT UserID FROM ledger")
 		# for id in stored_members:
@@ -78,10 +78,12 @@ class Bot(BotBase):
 
 		db.commit()
 
-	def run(self, version, gid, cid):
+	def run(self, version, gid, cid, coin, cs):
 		self.VERSION = version
 		self.GID = gid
 		self.CID = cid
+		self.COIN = coin
+		self.CS = cs
 
 		print("Running setup...")
 		self.setup()
@@ -89,7 +91,7 @@ class Bot(BotBase):
 		with open("./lib/bot/token.0", "r", encoding="utf-8") as tf:
 			self.TOKEN = tf.read()
 
-		print("Starting KenCoin...")
+		print(f"Starting {self.COIN}...")
 		super().run(self.TOKEN, reconnect=True)
 
 	# async def print_message(self):
@@ -97,10 +99,10 @@ class Bot(BotBase):
 	# 	await channel.send("I am a timed notification!")
 
 	async def on_connect(self):
-		print("KenCoin online")
+		print(f"{self.COIN} online")
 
 	async def on_disconnect(self):
-		print("KenCoin offline")
+		print(f"{self.COIN} offline")
 
 	async def on_error(self, err, *args, **kwargs):
 		if err == "on_command_error":
@@ -140,7 +142,7 @@ class Bot(BotBase):
 				print("Readying cogs...")
 				await sleep(0.5)
 
-			print("KenCoin initialized.")
+			print(f"{self.COIN} initialized.")
 			# print(self.commands)
 			self.ready = True
 		else:

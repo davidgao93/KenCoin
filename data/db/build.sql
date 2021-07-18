@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS guilds (
 	GuildID integer PRIMARY KEY,
-	Prefix text DEFAULT "!"
+	Prefix text DEFAULT "$"
 );
 
 CREATE TABLE IF NOT EXISTS jackpot (
@@ -11,15 +11,15 @@ CREATE TABLE IF NOT EXISTS jackpot (
 --INSERT INTO jackpot
 --VALUES (0, 50);
 
--- DROP TABLE ledger;
+DROP TABLE ledger;
 
 CREATE TABLE IF NOT EXISTS ledger (
 	UserID integer PRIMARY KEY, 
 	UserText text,
-	KC integer DEFAULT 0,
+	VC integer DEFAULT 0,
 	Level integer DEFAULT 0,
 	Mined integer DEFAULT 0,
-	KCLock text DEFAULT CURRENT_TIMESTAMP
+	Lock text DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ALTER TABLE ledger
