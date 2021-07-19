@@ -10,7 +10,7 @@ class Fun(Cog):
         self.version = bot.VERSION
         self.coin = bot.COIN
         self.cs = bot.CS
-        self.prefix = "$"
+        self.prefix = "!"
     @command(name="version", aliases=["v"], brief="See updates")
     async def say_version(self, ctx):
         embed = Embed(title=self.coin, description=f"Update __{self.version}__",

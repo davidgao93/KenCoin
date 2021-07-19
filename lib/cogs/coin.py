@@ -342,14 +342,14 @@ class Coin(Cog):
         ]
 
         if (rand_int >= 25):
-            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", tribute - 1, ctx.author.id)
+            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", tribute, ctx.author.id)
             db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", tribute, member.id)
             hit_msg = choice(success)
             await ctx.send(f"{ctx.author.display_name} slapped {member.mention} for {reason}! " +
             f"{hit_msg}, dropping **{tribute}**{self.cs} that {ctx.author.display_name} pockets!")
         else:
             hit_msg = choice(fail)
-            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - 1 WHERE UserID = ?", ctx.author.id)
+            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} WHERE UserID = ?", ctx.author.id)
             await ctx.send(f"{hit_msg}!")
         db.commit()
     @slap_member.error
