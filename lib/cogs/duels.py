@@ -58,7 +58,7 @@ class Duels(Cog):
                     await self.bot.get_channel(self.cid).send(f"{user} has the PID advantage! They strike first!")
 
                 while (not (sponsor_hp <= 0 or user_hp <= 0)):
-                    await sleep(4)
+                    await sleep(3)
                     if PID == 1:
                         embed = Embed(title="⚔️ Duels ⚔️",
                             colour=0x783729)
@@ -127,7 +127,7 @@ class Duels(Cog):
                             value=f"{user} has won the duel with **{user_hp}**HP left!", 
                             inline=False)                            
 
-                        await self.bot.get_channel(self.cid).send(embed=embed, delete_after=5)
+                        await self.bot.get_channel(self.cid).send(embed=embed, delete_after=3.5)
                 embed_result = Embed(title="⚔️ Duel result ⚔️",
                 colour=0x783729, timestamp=datetime.utcnow())
                 embed_result.set_footer(text=f"We look forward to your next duel")

@@ -90,7 +90,7 @@ class Coin(Cog):
         if (gpu_tier == "None"):
             embed.add_field(
                 name=f"You currently don't have an upgraded GPU!",
-                value=f"Purchase an upgraded GPU with {self.cs} using the !upgrade command.",
+                value=f"Purchase an upgraded GPU with {self.cs} using the $upgrade command.",
                 inline=False
             )
         else:
@@ -153,14 +153,16 @@ class Coin(Cog):
         embed = Embed(title="Ranking", description=f"Here is the current leaderboard:",
         colour=0x783729, timestamp=datetime.utcnow())
         index = 1
+        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte"]
         for someid in ids:
-            coins = db.record(f"SELECT {self.cs} FROM ledger WHERE UserID = ?", someid) or (None)
+            coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", someid) or (None, None)
             if (coins is not None):
                 coins_str = str(coins)
                 display_name = f"{ctx.bot.get_user(someid).display_name}"
+                gpu_tier = f"{tiers[lvl]}" if lvl > 0 else "basic GPU"
                 embed.add_field(
-                    name=f"Rank {index}: {display_name}", 
-                    value=f"Balance: **{coins_str[1:-2]}**{self.cs}", 
+                    name=f"Rank {index}: {display_name} - {gpu_tier}", 
+                    value=f"Balance: **{coins_str}**{self.cs}", 
                     inline=False)
 
             if index == 5:
@@ -222,7 +224,7 @@ class Coin(Cog):
     @cooldown(1, 3, BucketType.user)
     async def roll_dice(self, ctx, amt: str, rrc: Optional[str], bullets: Optional[int]):
         coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", ctx.author.id) # both, unsued lvl so can be int instead of tuple
-        jackpot, amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") # same here
+        jackpot, jackpot_amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") # same here
         if (amt == "all"):
             gamba_amt = coins
         elif (amt == "rr"):
@@ -231,6 +233,7 @@ class Coin(Cog):
         else:
             gamba_amt = int(amt)
 
+        print(f"gambling {gamba_amt} with a balance of {coins}")
         if (gamba_amt > coins):
             await ctx.send(f"You don't have enough {self.cs}!")
             return
@@ -254,7 +257,7 @@ class Coin(Cog):
             db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", gamba_amt, ctx.author.id)
             db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", gamba_amt)
             embed.add_field(name="🎲 You **lose!** 🎲", 
-            value=f"Your balance is now: {coins-gamba_amt:,}{self.cs}. The {self.cs} are added to the pot valued at: *{amt+gamba_amt:,}{self.cs}*.",
+            value=f"Your balance is now: {coins-gamba_amt:,}{self.cs}. The {self.cs} are added to the pot valued at: *{jackpot_amt+gamba_amt:,}{self.cs}*.",
             inline=False)
         elif sum(rolls) == 30:
             new_bal = coins + amt

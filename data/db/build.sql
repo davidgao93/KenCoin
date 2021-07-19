@@ -8,10 +8,10 @@ CREATE TABLE IF NOT EXISTS jackpot (
 	Amount integer DEFAULT 50
 );
 
---INSERT INTO jackpot
---VALUES (0, 50);
+INSERT INTO jackpot
+VALUES (0, 50);
 
-DROP TABLE ledger;
+-- DROP TABLE ledger;
 
 CREATE TABLE IF NOT EXISTS ledger (
 	UserID integer PRIMARY KEY, 

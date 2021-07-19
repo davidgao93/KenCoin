@@ -10,16 +10,16 @@ class Fun(Cog):
         self.version = bot.VERSION
         self.coin = bot.COIN
         self.cs = bot.CS
-
+        self.prefix = "$"
     @command(name="version", aliases=["v"], brief="See updates")
     async def say_version(self, ctx):
         embed = Embed(title=self.coin, description=f"Update __{self.version}__",
         colour=0x783729, timestamp=datetime.utcnow())
-        fields = [("New command !d <amt>", f"Sets up a duel with <amt> as the ante. Anyone with enough {self.coin} can challenge.", False),
+        fields = [(f"New command {self.prefix}d <amt>", f"Sets up a duel with <amt> as the ante. Anyone with enough {self.coin} can challenge.", False),
         ("Gamble changes", f"Gambles will now reward bonus dice in multiples of 10, with more bonus dice awarded per multiple of 10{self.cs} gambled.", False),
-        ("Buff to !slap", f"Can now slap anyone with a positive {self.cs} value (you must also have 1{self.cs}), " + 
+        (f"Buff to {self.prefix}slap", f"Can now slap anyone with a positive {self.cs} value (you must also have 1{self.cs}), " + 
         f" they no longer cost {self.cs}, but the CD has increased.", False),
-        ("!u", f"Upgrade your graphics card to mine {self.cs} hourly in the background while you do other stuff!", False)]
+        (f"{self.prefix}u", f"Upgrade your graphics card to mine {self.cs} hourly in the background while you do other stuff!", False)]
         for name, value, inline in fields:
             embed.add_field(name=name, value=value, inline=inline)
         embed.set_footer(text=f"Version {self.version}")
