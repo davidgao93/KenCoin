@@ -2,7 +2,7 @@ from discord.ext.commands import Cog
 
 from ..db import db
 
-class Reactions(Cog):
+class gpu(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.cid = bot.CID
@@ -13,16 +13,17 @@ class Reactions(Cog):
     @Cog.listener()
     async def on_ready(self):
         if not self.bot.ready:
-            self.bot.cogs_ready.ready_up("reactions")
+            self.bot.cogs_ready.ready_up("gpu")
 
     @Cog.listener()
     async def on_reaction_add(self, reaction, user):
         if (reaction.message.content.startswith("Your current GPU")):
             #print("attempting to upgrade GPU")
             coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", user.id)
-            tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte"]
-            costs = [0, 10, 50, 200, 500, 1000, 1500, 3000, 5000, 10000, 50000]
-            if (lvl == 10):
+            tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
+            "Solaryte", "Galaxyte", "Universyte", "Void"]
+            costs = [0, 10, 50, 200, 500, 1000, 1500, 3000, 5000, 10000, 50000, 100000, 250000, 500000, 1000000000]
+            if (lvl == 14):
                 await self.bot.get_channel(self.cid).send(f"Congratulations! You are already at the max tier!")
             if (coins >= costs[lvl+1]):
                 #print("balance sufficient, deducting...")
@@ -49,5 +50,5 @@ class Reactions(Cog):
     #     pass
 
 def setup(bot):
-    bot.add_cog(Reactions(bot))
+    bot.add_cog(gpu(bot))
     

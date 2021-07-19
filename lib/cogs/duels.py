@@ -42,7 +42,8 @@ class Duels(Cog):
             if (coins < duel_amt) :
                 await self.bot.get_channel(self.cid).send(f"You don't have enough to match the duel amount. Try again when you do.")
             else:
-                await self.bot.get_channel(self.cid).send(f"{user} has accepted the duel!", delete_after=30)
+                await reaction.message.delete()
+                await self.bot.get_channel(self.cid).send(f"{user} has accepted the duel!")
                 await self.bot.get_channel(self.cid).send(f"You both pull out your abyssal whips...", delete_after=5)
                 await sleep(1.5)
                 print(f"dueling {user.id} and {sponsor}")
@@ -144,7 +145,6 @@ class Duels(Cog):
                     db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", duel_amt * 2, sponsor)                          
                     db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", duel_amt, user.id)    
                 await self.bot.get_channel(self.cid).send(embed=embed_result)
-                await reaction.message.delete()
                 db.commit()
             
     @command(name="duel", aliases=["d"], brief=f"Start a duel with <amt> as the ante.")

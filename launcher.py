@@ -1,6 +1,6 @@
 from lib.bot import bot
 
-VERSION = "0.0.5"
+VERSION = "0.0.6"
 # GID = 699690514051629086
 # CID = 699690514051629089
 # COIN = "KenCoin"

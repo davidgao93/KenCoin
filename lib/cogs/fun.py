@@ -10,16 +10,15 @@ class Fun(Cog):
         self.version = bot.VERSION
         self.coin = bot.COIN
         self.cs = bot.CS
-        self.prefix = "!"
+        self.prefix = "$"
     @command(name="version", aliases=["v"], brief="See updates")
     async def say_version(self, ctx):
         embed = Embed(title=self.coin, description=f"Update __{self.version}__",
         colour=0x783729, timestamp=datetime.utcnow())
-        fields = [(f"New command {self.prefix}d <amt>", f"Sets up a duel with <amt> as the ante. Anyone with enough {self.coin} can challenge.", False),
-        ("Gamble changes", f"Gambles will now reward bonus dice in multiples of 10, with more bonus dice awarded per multiple of 10{self.cs} gambled.", False),
-        (f"Buff to {self.prefix}slap", f"Can now slap anyone with a positive {self.cs} value (you must also have 1{self.cs}), " + 
-        f" they no longer cost {self.cs}, but the CD has increased.", False),
-        (f"{self.prefix}u", f"Upgrade your graphics card to mine {self.cs} hourly in the background while you do other stuff!", False)]
+        fields = [(f"New Prefix", f"Prefix is now set to $ instead of !", False),
+        ("Gamble nerfs", f"Gambles are now capped at 10 gambles per hour for regular gamble, roulette has no limit but cannot hit jackpot table. RR multiplier has decreased.", False),
+        (f"Buff to {self.prefix}tip", f"Can now tip anyone (you must have 1{self.cs}) every 30m instead of 60m.", False),
+        (f"{self.prefix}u", f"4 new tiers of GPU have been added, Solar, Galaxy, Universe, Void.", False)]
         for name, value, inline in fields:
             embed.add_field(name=name, value=value, inline=inline)
         embed.set_footer(text=f"Version {self.version}")

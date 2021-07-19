@@ -7,7 +7,7 @@ class Meta(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        self._message = "playing !help"
+        self._message = "playing $help"
 
         bot.scheduler.add_job(self.set, CronTrigger(second=0))
 
@@ -20,7 +20,7 @@ class Meta(Cog):
         self._message = value
     
     async def set(self):
-        await self.bot.change_presence(activity=Activity(name="!help", type=getattr(ActivityType, "playing", ActivityType.playing)))
+        await self.bot.change_presence(activity=Activity(name="$help", type=getattr(ActivityType, "playing", ActivityType.playing)))
 
     @Cog.listener()
     async def on_ready(self):

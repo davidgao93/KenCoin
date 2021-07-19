@@ -14,7 +14,7 @@ from discord.ext.commands import when_mentioned_or
 
 from ..db import db
 
-PREFIX = "!"
+PREFIX = "$"
 OWNER_IDS = [863215534069776405]
 COGS = [path.split("/")[-1][:-3] for path in glob("./lib/cogs/*.py")]
 IGNORE_EXCEPTIONS = (CommandNotFound, BadArgument)

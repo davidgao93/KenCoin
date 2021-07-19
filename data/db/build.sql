@@ -16,14 +16,15 @@ CREATE TABLE IF NOT EXISTS jackpot (
 CREATE TABLE IF NOT EXISTS ledger (
 	UserID integer PRIMARY KEY, 
 	UserText text,
-	VC integer DEFAULT 0,
+	KC integer DEFAULT 0,
 	Level integer DEFAULT 0,
 	Mined integer DEFAULT 0,
+	-- Gambles integer Default 10,
 	Lock text DEFAULT CURRENT_TIMESTAMP
 );
 
--- ALTER TABLE ledger
--- ADD Mined integer DEFAULT 0;
+ALTER TABLE ledger
+ADD Gambles integer DEFAULT 10;
 
 -- UPDATE ledger
 -- SET KC = 1000

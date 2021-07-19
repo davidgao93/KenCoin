@@ -29,12 +29,14 @@ class Coin(Cog):
         ids = db.column("SELECT UserID FROM ledger ORDER BY Level DESC")
 
         for uid in ids:
-            coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", uid)
+            gambles, lvl = db.record(f"SELECT Gambles, Level FROM ledger WHERE UserID = ?", uid)
             if (lvl != 0 and not None):
                 mine_amt = lvl * randint(1, 6)
                 print(f"{uid} mined {mine_amt} coins")
-                db.execute("UPDATE ledger SET Mined = Mined + ? WHERE UserID = ?", mine_amt, uid)
+                db.execute("UPDATE ledger SET Gambles = 10, Mined = Mined + ? WHERE UserID = ?", mine_amt, uid)
                 db.commit()
+
+
     def auto_print(self):
         # self.scheduler.add_job(self.mine_coin, CronTrigger(second="0, 15, 30, 45"))
         self.scheduler.add_job(self.mine_coin, CronTrigger(hour="*"))
@@ -85,7 +87,8 @@ class Coin(Cog):
             value=f"Your balance is now: **{coins+coins_to_add:,}**{self.cs}.",
             inline="False")
 
-        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte"]
+        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
+            "Solaryte", "Galaxyte", "Universyte", "Void"]
         gpu_tier = tiers[int(lvl)]
         if (gpu_tier == "None"):
             embed.add_field(
@@ -112,12 +115,13 @@ class Coin(Cog):
     @command(name="upgrade", aliases=["u"], brief="Upgrade your graphics card")
     async def upgrade(self, ctx):
         coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", ctx.author.id)
-        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte"]
-        costs = [0, 10, 50, 200, 500, 1000, 1500, 3000, 5000, 10000, 50000]
+        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
+            "Solaryte", "Galaxyte", "Universyte", "Void"]
+        costs = [0, 10, 50, 200, 500, 1000, 1500, 3000, 5000, 10000, 50000, 100000, 250000, 500000, 1000000000]
         if (lvl == 0):
             await ctx.send(f"Your current GPU is not upgraded. Upgrading will cost **10**{self.cs}. React with any emoji to proceed.")
-        elif (lvl == 10):
-            await ctx.send(f"You have the best GPU {self.cs} can buy, Kenyte tier. There are no more upgrades possible for now.")
+        elif (lvl == len(tiers)):
+            await ctx.send(f"You have the best GPU {self.cs} can buy, {tiers[lvl]} tier. There are no more upgrades possible for now.")
         else:
             await ctx.send(f"Your current GPU is {tiers[lvl]} tier. Upgrading will cost **{costs[lvl+1]}**{self.cs}. React with any emoji to proceed.")
 
@@ -153,7 +157,8 @@ class Coin(Cog):
         embed = Embed(title="Ranking", description=f"Here is the current leaderboard:",
         colour=0x783729, timestamp=datetime.utcnow())
         index = 1
-        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte"]
+        tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
+            "Solaryte", "Galaxyte", "Universyte", "Void"]
         for someid in ids:
             coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", someid) or (None, None)
             if (coins is not None):
@@ -206,7 +211,7 @@ class Coin(Cog):
 
             roll = randint(0, 120)
             if roll >= 20 * bullets:
-                multiplier = (6/(6-bullets))*1.1
+                multiplier = (6/(6-bullets))*1.05
                 award = int(gamba_amt * multiplier)
                 embed.add_field(name="You cock the trigger and pull...", value="🎊 It doesn't fire! 🎊", inline=False)
                 embed.add_field(name=f"You win **{award}**{self.cs}.", value=f"Your balance is now **{coins+award-gamba_amt}**{self.cs}.", inline=False)
@@ -223,8 +228,8 @@ class Coin(Cog):
     @command(name="gamba", aliases=["g"], brief="Gamble <amt>, use <rr> <amt>/<all> for Russian Roulette, <all> to gamble all.")
     @cooldown(1, 3, BucketType.user)
     async def roll_dice(self, ctx, amt: str, rrc: Optional[str], bullets: Optional[int]):
-        coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", ctx.author.id) # both, unsued lvl so can be int instead of tuple
-        jackpot, jackpot_amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") # same here
+        coins, gambles = db.record(f"SELECT {self.cs}, Gambles FROM ledger WHERE UserID = ?", ctx.author.id)
+        jackpot, jackpot_amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") #unsued jackpot to preserve number formatting
         if (amt == "all"):
             gamba_amt = coins
         elif (amt == "rr"):
@@ -233,16 +238,27 @@ class Coin(Cog):
         else:
             gamba_amt = int(amt)
 
-        print(f"gambling {gamba_amt} with a balance of {coins}")
+        print(f"gambling {gamba_amt} with a balance of {coins} and {gambles} left")
         if (gamba_amt > coins):
             await ctx.send(f"You don't have enough {self.cs}!")
             return
         elif (gamba_amt == 0):
             await ctx.send("Pointless!")
             return
-        embed = Embed(title="Gamble",
-        colour=0x783729, timestamp=datetime.utcnow())
-        embed.set_footer(text=f"Please gamble responsibly")
+
+        if (gambles <= 0):
+            await ctx.send("You are out of gambles. Try again next hour.")
+            return
+
+        gambles = int(gambles)
+        if (gambles == 3):
+            embed = Embed(title="Gamble",
+            colour=0x783729, timestamp=datetime.utcnow())
+            embed.set_footer(text=f"TWO GAMBLES LEFT")
+        else:
+            embed = Embed(title="Gamble",
+            colour=0x783729, timestamp=datetime.utcnow())
+            embed.set_footer(text=f"Please gamble responsibly")
         
         rolls = [randint(1, 6) for i in range(5)]
         house_rolls = [randint(1, 6) for i in range(5)]
@@ -254,14 +270,14 @@ class Coin(Cog):
         if sum(rolls) == sum(house_rolls):
             embed.add_field(name="It's a 🙈 **tie!** 🙈", value=f"Your balance remains: {coins:,}{self.cs}.", inline=False)
         elif sum(rolls) < sum(house_rolls):
-            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", gamba_amt, ctx.author.id)
+            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt, ctx.author.id)
             db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", gamba_amt)
             embed.add_field(name="🎲 You **lose!** 🎲", 
             value=f"Your balance is now: {coins-gamba_amt:,}{self.cs}. The {self.cs} are added to the pot valued at: *{jackpot_amt+gamba_amt:,}{self.cs}*.",
             inline=False)
         elif sum(rolls) == 30:
             new_bal = coins + amt
-            db.execute(f"UPDATE ledger SET {self.cs} = ? WHERE UserID = ?", new_bal, ctx.author.id)
+            db.execute(f"UPDATE ledger SET {self.cs} = ?, Gambles = Gambles - 1 WHERE UserID = ?", new_bal, ctx.author.id)
             db.execute("UPDATE jackpot SET Amount = 0 WHERE Jackpot = 0")
             embed.add_field(name="🎰 J A C K P O T 🎰", 
             value=f"Your balance is now: {new_bal:,}{self.cs}. The pot is now **reset**.",
@@ -272,19 +288,24 @@ class Coin(Cog):
             bonus_multiplier = gamba_amt/10*0.05
             bonus_total = int((sum(bonus_amt)+sum(bonus_amt)*bonus_multiplier))
             if (bonus_dice > 0):
-                bonus_msg = " + ".join([str(r) for r in bonus_amt]) + f" = {sum(bonus_amt)} x bonus = **{bonus_total}**{self.cs} awarded! Your new balance is **{gamba_amt+bonus_total+coins:,}**{self.cs}."
+                if (bonus_dice < 25):
+                    bonus_msg = (" + ".join([str(r) for r in bonus_amt]) + f" = {sum(bonus_amt)} x bonus = **{bonus_total}**{self.cs} awarded! " +
+                    f"Your new balance is **{gamba_amt+bonus_total+coins:,}**{self.cs}.")
+                else:
+                    bonus_msg = ("Numerous bonus dice were summed for a total of:" + f" {sum(bonus_amt)} x bonus = **{bonus_total}**{self.cs} awarded! " +
+                    f"Your new balance is **{gamba_amt+bonus_total+coins:,}**{self.cs}.")
                 embed.add_field(name="🎉 You **win!** 🎉", 
                 value=f"Your balance is now: {coins+gamba_amt:,}{self.cs}.",
                 inline=False)
                 embed.add_field(name=f"You receive **{bonus_dice}** bonus dice for betting big. You roll the following:",
                 value=bonus_msg,
                 inline=False)
-                db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", gamba_amt+bonus_total, ctx.author.id)
+                db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt+bonus_total, ctx.author.id)
             else:
                 embed.add_field(name="🎉 You **win!** 🎉", 
                 value=f"Your balance is now: {coins+gamba_amt:,}{self.cs}.",
                 inline=False)
-                db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", gamba_amt, ctx.author.id)
+                db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt, ctx.author.id)
 
         await ctx.send(embed=embed)
         db.commit()
@@ -295,7 +316,7 @@ class Coin(Cog):
             await ctx.send("Too many dice rolled, use a lower number.")
 
         elif isinstance(exc, BadArgument):
-            await ctx.send("Bad parameters.")
+            await ctx.send("Missing a gamble amount or type of gamble.")
 
         elif isinstance(exc, CommandOnCooldown):
             timer = time.strftime("%Ss", time.gmtime(exc.retry_after))[1:]
@@ -352,6 +373,7 @@ class Coin(Cog):
             db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} WHERE UserID = ?", ctx.author.id)
             await ctx.send(f"{hit_msg}!")
         db.commit()
+
     @slap_member.error
     async def slap_member_error(self, ctx, exc):
         if isinstance(exc, BadArgument):
@@ -363,7 +385,7 @@ class Coin(Cog):
 
 
     @command(name="tip", aliases=["t"], brief="Tips <user> and give them a token of your appreciation for [reason]")
-    @cooldown(1, 3600, BucketType.user)
+    @cooldown(1, 1800, BucketType.user)
     async def tip_member(self, ctx, member: Member, *, reason: Optional[str] = "no reason"):
 
         if member == ctx.author:
@@ -395,10 +417,10 @@ class Coin(Cog):
         if not self.bot.ready:
             self.bot.cogs_ready.ready_up("coin")
 
-    @Cog.listener()
-    async def on_message(self, message):
-        if not message.author.bot:
-            pass
+    # @Cog.listener()
+    # async def on_message(self, message):
+    #     if not message.author.bot:
+    #         pass
             #await self.process_coin(message)
 
 
