@@ -226,7 +226,7 @@ class Coin(Cog):
 
 
     @command(name="gamba", aliases=["g"], brief="Gamble <amt>, use <rr> <amt>/<all> for Russian Roulette, <all> to gamble all.")
-    @cooldown(1, 3, BucketType.user)
+    # @cooldown(1, 3, BucketType.user)
     async def roll_dice(self, ctx, amt: str, rrc: Optional[str], bullets: Optional[int]):
         coins, gambles = db.record(f"SELECT {self.cs}, Gambles FROM ledger WHERE UserID = ?", ctx.author.id)
         jackpot, jackpot_amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") #unsued jackpot to preserve number formatting

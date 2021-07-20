@@ -2,6 +2,6 @@
 *.db-journal
 *__pychache__
 *.pyc
-lib/bot/token.0
+lib/bot/token.*
 .vscode
 .env

@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS ledger (
 	Lock text DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE ledger
-ADD Gambles integer DEFAULT 10;
+-- ALTER TABLE ledger
+-- ADD Gambles integer DEFAULT 10;
 
 -- UPDATE ledger
 -- SET KC = 1000
