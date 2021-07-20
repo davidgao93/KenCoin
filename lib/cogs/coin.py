@@ -270,17 +270,32 @@ class Coin(Cog):
         if sum(rolls) == sum(house_rolls):
             embed.add_field(name="It's a 🙈 **tie!** 🙈", value=f"Your balance remains: {coins:,}{self.cs}.", inline=False)
         elif sum(rolls) < sum(house_rolls):
-            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt, ctx.author.id)
-            db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", gamba_amt)
-            embed.add_field(name="🎲 You **lose!** 🎲", 
-            value=f"Your balance is now: {coins-gamba_amt:,}{self.cs}. The {self.cs} are added to the pot valued at: *{jackpot_amt+gamba_amt:,}{self.cs}*.",
-            inline=False)
+            if (coins > 100000):
+                extra_loss = int(coins * 0.9)
+            else:
+                extra_loss = 0
+
+            jackpot_add = 1000 if (gamba_amt > 1000) else gamba_amt
+            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt+extra_loss, ctx.author.id)
+            db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", jackpot_add)
+            if (extra_loss > 0):
+                embed.add_field(name="🎲 You **lose!** 🎲", 
+                value=(f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. The {self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}."),
+                inline=False)
+                embed.add_field(name="🚓 WEE WOO WEE WOO. UH OH! It's the rich people police! 👮", 
+                value=(f"They clobber you over the head, taking an additional **{extra_loss:,}**{self.cs} from you!" +
+                f" Your new balance is: **{coins-gamba_amt-extra_loss}**{self.cs}!"),
+                inline=False)
+            else:
+                embed.add_field(name="🎲 You **lose!** 🎲", 
+                value=f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. The {self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}.",
+                inline=False)              
         elif sum(rolls) == 30:
             new_bal = coins + amt
             db.execute(f"UPDATE ledger SET {self.cs} = ?, Gambles = Gambles - 1 WHERE UserID = ?", new_bal, ctx.author.id)
             db.execute("UPDATE jackpot SET Amount = 0 WHERE Jackpot = 0")
-            embed.add_field(name="🎰 J A C K P O T 🎰", 
-            value=f"Your balance is now: {new_bal:,}{self.cs}. The pot is now **reset**.",
+            embed.add_field(name="🎰 🎰 🎰 J A C K P O T 🎰 🎰 🎰", 
+            value=f"🎉🎉🎉 C O N G R A T U L A T I O N S! 🎉🎉🎉 Your balance is now: {new_bal:,}{self.cs}!!! The pot is now **reset**.",
             inline=False)
         else:
             bonus_dice = int((gamba_amt / 10) + ((gamba_amt / 10) * 0.2))
