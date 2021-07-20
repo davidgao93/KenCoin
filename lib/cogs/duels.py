@@ -154,7 +154,7 @@ class Duels(Cog):
         if (amt > coins):
             await ctx.send(f"You don't have enough {self.cs} to start this duel.")
             return
-        elif (amt == 0):
+        elif (amt <= 0):
             await ctx.send("Killing each other is fun and all, but there needs to be a stake.")
             return
 

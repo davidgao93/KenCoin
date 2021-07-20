@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS jackpot (
 -- INSERT INTO jackpot
 -- VALUES (0, 50);
 
--- DROP TABLE ledger;
+DROP TABLE ledger;
 
 CREATE TABLE IF NOT EXISTS ledger (
 	UserID integer PRIMARY KEY, 
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS ledger (
 	KC integer DEFAULT 0,
 	Level integer DEFAULT 0,
 	Mined integer DEFAULT 0,
-	-- Gambles integer Default 10,
+	Gambles integer Default 10,
 	Lock text DEFAULT CURRENT_TIMESTAMP
 );
 

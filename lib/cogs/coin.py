@@ -117,13 +117,16 @@ class Coin(Cog):
         coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", ctx.author.id)
         tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
             "Solaryte", "Galaxyte", "Universyte", "Void"]
-        costs = [0, 10, 50, 200, 500, 1000, 1500, 3000, 5000, 10000, 50000, 100000, 250000, 500000, 1000000000]
+        costs = [0, 10, 50, 200, 500, 1000, 1500, 3000, 5000, 10000, 50000, 100000, 250000, 500000, 1000000000, 1000000000000]
         if (lvl == 0):
             await ctx.send(f"Your current GPU is not upgraded. Upgrading will cost **10**{self.cs}. React with any emoji to proceed.")
-        elif (lvl == len(tiers)):
+            return
+        elif (lvl == 14):
             await ctx.send(f"You have the best GPU {self.cs} can buy, {tiers[lvl]} tier. There are no more upgrades possible for now.")
+            return
         else:
             await ctx.send(f"Your current GPU is {tiers[lvl]} tier. Upgrading will cost **{costs[lvl+1]}**{self.cs}. React with any emoji to proceed.")
+            return
 
     # @claim_coin.error
     # async def claim_coin_error(self, ctx, exc):
@@ -182,7 +185,7 @@ class Coin(Cog):
     async def roulette(self, ctx, coins, rrc, bullets):
         if (rrc == "all"):
             gamba_amt = int(coins)
-        elif (rrc == 0): 
+        elif (rrc <= 0): 
             await ctx.send("Pointless!")
             return
         else:
@@ -211,7 +214,7 @@ class Coin(Cog):
 
             roll = randint(0, 120)
             if roll >= 20 * bullets:
-                multiplier = (6/(6-bullets))*1.05
+                multiplier = (6/(6-bullets))*0.98
                 award = int(gamba_amt * multiplier)
                 embed.add_field(name="You cock the trigger and pull...", value="🎊 It doesn't fire! 🎊", inline=False)
                 embed.add_field(name=f"You win **{award}**{self.cs}.", value=f"Your balance is now **{coins+award-gamba_amt}**{self.cs}.", inline=False)
@@ -242,7 +245,10 @@ class Coin(Cog):
         if (gamba_amt > coins):
             await ctx.send(f"You don't have enough {self.cs}!")
             return
-        elif (gamba_amt == 0):
+        elif (gamba_amt > 5000000):
+            await ctx.send(f"Gambles are capped at 5,000,000{self.cs}!")
+            return
+        elif (gamba_amt <= 0):
             await ctx.send("Pointless!")
             return
 
@@ -276,17 +282,24 @@ class Coin(Cog):
                 extra_loss = 0
 
             jackpot_add = 1000 if (gamba_amt > 1000) else gamba_amt
-            db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt+extra_loss, ctx.author.id)
             db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", jackpot_add)
             if (extra_loss > 0):
                 embed.add_field(name="🎲 You **lose!** 🎲", 
                 value=(f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. The {self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}."),
                 inline=False)
+                if (coins-gamba_amt-extra_loss) < 0:
+                    final_bal = 10000 
+                    final_msg = f"As you went broke, they take pity on you and drop a bag of 10,000{self.cs} on your lap."
+                    db.execute(f"UPDATE ledger SET {self.cs} = 10000, Gambles = Gambles - 1 WHERE UserID = ?", ctx.author.id)
+                else:
+                    final_bal = coins-gamba_amt-extra_loss
+                    final_msg = f"Your new balance is: **{final_bal}**{self.cs}!"
+                    db.execute(f"UPDATE ledger SET {self.cs} = ?, Gambles = Gambles - 1 WHERE UserID = ?", final_bal, ctx.author.id)
                 embed.add_field(name="🚓 WEE WOO WEE WOO. UH OH! It's the rich people police! 👮", 
-                value=(f"They clobber you over the head, taking an additional **{extra_loss:,}**{self.cs} from you!" +
-                f" Your new balance is: **{coins-gamba_amt-extra_loss}**{self.cs}!"),
+                value=(f"They clobber you over the head, taking an additional **{extra_loss:,}**{self.cs} from you! " + final_msg),
                 inline=False)
             else:
+                db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt, ctx.author.id)
                 embed.add_field(name="🎲 You **lose!** 🎲", 
                 value=f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. The {self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}.",
                 inline=False)              
