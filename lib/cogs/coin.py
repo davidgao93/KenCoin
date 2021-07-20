@@ -231,8 +231,13 @@ class Coin(Cog):
     @command(name="gamba", aliases=["g"], brief="Gamble <amt>, use <rr> <amt>/<all> for Russian Roulette, <all> to gamble all.")
     # @cooldown(1, 3, BucketType.user)
     async def roll_dice(self, ctx, amt: str, rrc: Optional[str], bullets: Optional[int]):
-        coins, gambles = db.record(f"SELECT {self.cs}, Gambles FROM ledger WHERE UserID = ?", ctx.author.id)
+        coins, gambles, duel_active = db.record(f"SELECT {self.cs}, Gambles, Duel FROM ledger WHERE UserID = ?", ctx.author.id)
         jackpot, jackpot_amt = db.record("SELECT Jackpot, Amount FROM jackpot WHERE Jackpot = 0") #unsued jackpot to preserve number formatting
+
+        if (duel_active == 1):
+            await ctx.send(f"You have a pending duel! Please cancel your duel before proceeding.")
+            return
+
         if (amt == "all"):
             gamba_amt = coins
         elif (amt == "rr"):
@@ -281,11 +286,14 @@ class Coin(Cog):
             else:
                 extra_loss = 0
 
-            jackpot_add = 1000 if (gamba_amt > 1000) else gamba_amt
+            if (gamba_amt > 1000 or gamba_amt <= 0):
+                jackpot_add = 1000
+            else:
+                jackpot_add = gamba_amt
             db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", jackpot_add)
             if (extra_loss > 0):
                 embed.add_field(name="🎲 You **lose!** 🎲", 
-                value=(f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. The {self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}."),
+                value=(f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. {jackpot_add}{self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}."),
                 inline=False)
                 if (coins-gamba_amt-extra_loss) < 0:
                     final_bal = 10000 

@@ -27,22 +27,28 @@ class Duels(Cog):
     @Cog.listener()
     async def on_reaction_add(self, reaction, user):
         if (reaction.message.content.startswith("It's a duel!")):
-            coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", user.id)
+            coins, duel = db.record(f"SELECT {self.cs}, Duel FROM ledger WHERE UserID = ?", user.id)
             reg = re.findall('\d+', reaction.message.content)
             duel_amt = int(reg[0])
             sponsor = int(reg[1])
             sponsor_name = self.bot.get_user(sponsor).display_name
             if (user.id == sponsor):
                 await reaction.message.delete()
-                await self.bot.get_channel(self.cid).send(f"Duel cancelled! You are refunded {duel_amt}{self.cs}.", delete_after=5)
-                db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", duel_amt, sponsor)
-                db.commit()
-                return
+                if (duel == 1):
+                    await self.bot.get_channel(self.cid).send(f"Duel cancelled! You are refunded {duel_amt}{self.cs}.", delete_after=5)
+                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Duel = 0 WHERE UserID = ?", duel_amt, sponsor)
+                    db.commit()
+                    return
+                else:
+                    await self.bot.get_channel(self.cid).send(f"Duel not found.", delete_after=5)
+                    return
 
             if (coins < duel_amt) :
                 await self.bot.get_channel(self.cid).send(f"You don't have enough to match the duel amount. Try again when you do.")
             else:
                 await reaction.message.delete()
+                db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", duel_amt, user.id)    
+                db.commit()
                 await self.bot.get_channel(self.cid).send(f"{user} has accepted the duel!")
                 await self.bot.get_channel(self.cid).send(f"You both pull out your abyssal whips...", delete_after=5)
                 await sleep(1.5)
@@ -137,19 +143,22 @@ class Duels(Cog):
                     embed_result.add_field(name=f"🎉 {user} wins {duel_amt * 2}{self.cs}. 🎉",
                                 value=f"{sponsor_name} hangs their head in shame.", 
                                 inline=False)
-                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", duel_amt * 2, user.id)
+                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Duel = 0 WHERE UserID = ?", duel_amt * 2, user.id)
                 else: # Sponsor wins, get duel_amt * 2, user loses
                     embed_result.add_field(name=f"🎉 {sponsor_name} wins {duel_amt * 2}{self.cs}. 🎉",
                                 value=f"{user} hangs their head in shame.", 
                                 inline=False)
-                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", duel_amt * 2, sponsor)                          
-                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", duel_amt, user.id)    
+                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Duel = 0 WHERE UserID = ?", duel_amt * 2, sponsor)                          
                 await self.bot.get_channel(self.cid).send(embed=embed_result)
                 db.commit()
             
     @command(name="duel", aliases=["d"], brief=f"Start a duel with <amt> as the ante.")
     async def set_duel(self, ctx, amt: int):
-        coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", ctx.author.id) # both, unsued lvl so can be int instead of tuple
+        coins, duel_active = db.record(f"SELECT {self.cs}, Duel FROM ledger WHERE UserID = ?", ctx.author.id) # both, unsued lvl so can be int instead of tuple
+
+        if (duel_active == 1):
+            await ctx.send(f"You already have an active duel, you cannot start another until the previous has completed.")
+            return
 
         if (amt > coins):
             await ctx.send(f"You don't have enough {self.cs} to start this duel.")
@@ -167,7 +176,7 @@ class Duels(Cog):
         await ctx.send(embed=embed)
         await ctx.send(f"It's a duel! {ctx.author.name} has sponsored a duel for **{amt}**{self.cs}! React to **this message** to fight to the death!" +
                     f"*You may cancel the duel as the sponsor by reacting to get your {self.cs} back.* Duel ID: {ctx.author.id}")
-        db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", amt, ctx.author.id)
+        db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ?, Duel = 1 WHERE UserID = ?", amt, ctx.author.id)
         db.commit()
 
     @set_duel.error

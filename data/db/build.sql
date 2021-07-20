@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS ledger (
 	Level integer DEFAULT 0,
 	Mined integer DEFAULT 0,
 	Gambles integer Default 10,
+	Duel integer Default 0,
 	Lock text DEFAULT CURRENT_TIMESTAMP
 );
 
