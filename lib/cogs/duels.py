@@ -26,7 +26,8 @@ class Duels(Cog):
 
     @Cog.listener()
     async def on_reaction_add(self, reaction, user):
-        if (reaction.message.content.startswith("It's a duel!")):
+        print(f"checking {reaction.message.author.id} to see if valid duel")
+        if (reaction.message.content.startswith("It's a duel!") and reaction.message.author.id == 863215534069776405):
             coins, duel = db.record(f"SELECT {self.cs}, Duel FROM ledger WHERE UserID = ?", user.id)
             reg = re.findall('\d+', reaction.message.content)
             duel_amt = int(reg[0])
@@ -144,11 +145,13 @@ class Duels(Cog):
                                 value=f"{sponsor_name} hangs their head in shame.", 
                                 inline=False)
                     db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Duel = 0 WHERE UserID = ?", duel_amt * 2, user.id)
+                    db.execute(f"UPDATE ledger SET Duel = 0 WHERE UserID = ?", sponsor)
                 else: # Sponsor wins, get duel_amt * 2, user loses
                     embed_result.add_field(name=f"🎉 {sponsor_name} wins {duel_amt * 2}{self.cs}. 🎉",
                                 value=f"{user} hangs their head in shame.", 
                                 inline=False)
-                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Duel = 0 WHERE UserID = ?", duel_amt * 2, sponsor)                          
+                    db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Duel = 0 WHERE UserID = ?", duel_amt * 2, sponsor)    
+                    db.execute(f"UPDATE ledger SET Duel = 0 WHERE UserID = ?", user.id)                      
                 await self.bot.get_channel(self.cid).send(embed=embed_result)
                 db.commit()
             

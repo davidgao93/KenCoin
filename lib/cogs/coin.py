@@ -185,7 +185,7 @@ class Coin(Cog):
     async def roulette(self, ctx, coins, rrc, bullets):
         if (rrc == "all"):
             gamba_amt = int(coins)
-        elif (rrc <= 0): 
+        elif (int(rrc) <= 0): 
             await ctx.send("Pointless!")
             return
         else:
