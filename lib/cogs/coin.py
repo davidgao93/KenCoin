@@ -29,10 +29,12 @@ class Coin(Cog):
         ids = db.column("SELECT UserID FROM ledger ORDER BY Level DESC")
 
         for uid in ids:
-            gambles, lvl = db.record(f"SELECT Gambles, Level FROM ledger WHERE UserID = ?", uid)
-            if (lvl != 0 and not None):
-                mine_amt = lvl * randint(1, 6)
-                print(f"{uid} mined {mine_amt} coins")
+            prestige, lvl  = db.record(f"SELECT Prestige, Level FROM ledger WHERE UserID = ?", uid)
+            if ((lvl != 0 or prestige !=0) and not None):
+                lvl = lvl if prestige == 0 else lvl+(prestige*14)
+                rolls = [randint(1, 6) for i in range(lvl)]
+                mine_amt = sum(rolls) * lvl
+                print(f"{uid} mined {mine_amt} coins with prestige rank {prestige}")
                 db.execute("UPDATE ledger SET Gambles = 10, Mined = Mined + ? WHERE UserID = ?", mine_amt, uid)
                 db.commit()
 
@@ -90,7 +92,7 @@ class Coin(Cog):
         tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
             "Solaryte", "Galaxyte", "Universyte", "Void"]
         gpu_tier = tiers[int(lvl)]
-        if (gpu_tier == "None"):
+        if (gpu_tier == "None" and coins_mined == 0):
             embed.add_field(
                 name=f"You currently don't have an upgraded GPU!",
                 value=f"Purchase an upgraded GPU with {self.cs} using the $upgrade command.",
@@ -98,8 +100,8 @@ class Coin(Cog):
             )
         else:
             embed.add_field(
-                name=f"Your GPU tier is currently: {gpu_tier}",
-                value=f"Mining a total of {coins_mined} since your last claim. They are added to your balance.",
+                name=f"You have an upgraded GPU or a prestige rank.",
+                value=f"Your GPU mined a total of {coins_mined:,} since your last claim. They are added to your balance.",
                 inline=False)
 
             db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Mined = 0 WHERE UserID = ?", 
@@ -108,11 +110,11 @@ class Coin(Cog):
 
         await message.send(embed=embed)
 
-    @command(name="claim", aliases=["c"], brief="Check your mining progress")
+    @command(name="claim", aliases=["c", "C"], brief="Check your mining progress")
     async def claim_coin(self, ctx):
         await self.process_coin(ctx)
 
-    @command(name="upgrade", aliases=["u"], brief="Upgrade your graphics card")
+    @command(name="upgrade", aliases=["u", "U"], brief="Upgrade your graphics card")
     async def upgrade(self, ctx):
         coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", ctx.author.id)
         tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
@@ -128,6 +130,19 @@ class Coin(Cog):
             await ctx.send(f"Your current GPU is {tiers[lvl]} tier. Upgrading will cost **{costs[lvl+1]}**{self.cs}. React with any emoji to proceed.")
             return
 
+    @command(name="prestige", aliases=["p", "P"], brief="Prestige your rank at max GPU tier, resetting your KC and gaining a prestige rank.")
+    async def prestige(self, ctx):
+        duel, lvl = db.record(f"SELECT Duel, Level FROM ledger WHERE UserID = ?", ctx.author.id)
+        if (duel == 1):
+            await ctx.send(f"You cannot prestige while sponsoring a duel.")
+            return
+        
+        if (lvl == 14):
+            await ctx.send(f"Congratulations! You are eligible to prestige your rank and multiply your mining bonuses! React with any emoji to proceed.")
+            return
+        else:
+            await ctx.send(f"You are currently not eligible to prestige.")
+            return
     # @claim_coin.error
     # async def claim_coin_error(self, ctx, exc):
     #     if isinstance(exc, CommandOnCooldown):
@@ -139,7 +154,7 @@ class Coin(Cog):
     #     await member.edit(nick=nick)
     #     await ctx.send(f'Nickname was changed for {member.mention} ')
 
-    @command(name="wallet", aliases=["w"], brief="Check your current balance")
+    @command(name="wallet", aliases=["w", "W"], brief="Check your current balance")
     async def display_wallet(self, ctx, target: Optional[Member]):
         target = target or ctx.author
 
@@ -152,24 +167,24 @@ class Coin(Cog):
             await ctx.send(f"{target.display_name}'s wallet not found.")
         
 
-    @command(name="rank", aliases=["r"], brief="Check current rankings")
+    @command(name="rank", aliases=["r", "R"], brief="Check current rankings")
     async def display_rank(self, ctx, target: Optional[Member]):
         target = target or ctx.author
 
-        ids = db.column(f"SELECT UserID FROM ledger ORDER BY {self.cs} DESC")
+        ids = db.column(f"SELECT UserID FROM ledger ORDER BY Prestige DESC, Level DESC, {self.cs} DESC")
         embed = Embed(title="Ranking", description=f"Here is the current leaderboard:",
         colour=0x783729, timestamp=datetime.utcnow())
         index = 1
         tiers = ["None", "Amethyst", "Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte", "Kenyte",
             "Solaryte", "Galaxyte", "Universyte", "Void"]
         for someid in ids:
-            coins, lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", someid) or (None, None)
+            coins, lvl, prestige = db.record(f"SELECT {self.cs}, Level, Prestige FROM ledger WHERE UserID = ?", someid) or (None, None)
             if (coins is not None):
-                coins_str = str(coins)
+                coins_str = f"{coins:,}"
                 display_name = f"{ctx.bot.get_user(someid).display_name}"
                 gpu_tier = f"{tiers[lvl]}" if lvl > 0 else "basic GPU"
                 embed.add_field(
-                    name=f"Rank {index}: {display_name} - {gpu_tier}", 
+                    name=f"Rank {index}: {display_name} ({prestige}) - {gpu_tier}", 
                     value=f"Balance: **{coins_str}**{self.cs}", 
                     inline=False)
 
@@ -228,7 +243,7 @@ class Coin(Cog):
             db.commit()
 
 
-    @command(name="gamba", aliases=["g"], brief="Gamble <amt>, use <rr> <amt>/<all> for Russian Roulette, <all> to gamble all.")
+    @command(name="gamba", aliases=["g", "G"], brief="Gamble <amt>, use <rr> <amt>/<all> for Russian Roulette, <all> to gamble all.")
     # @cooldown(1, 3, BucketType.user)
     async def roll_dice(self, ctx, amt: str, rrc: Optional[str], bullets: Optional[int]):
         coins, gambles, duel_active = db.record(f"SELECT {self.cs}, Gambles, Duel FROM ledger WHERE UserID = ?", ctx.author.id)
@@ -270,17 +285,25 @@ class Coin(Cog):
             embed = Embed(title="Gamble",
             colour=0x783729, timestamp=datetime.utcnow())
             embed.set_footer(text=f"Please gamble responsibly")
-        
+
         rolls = [randint(1, 6) for i in range(5)]
+        if (gamba_amt >= 833333):
+            reverse = int(gamba_amt / 833333)
+            roll_sum = sum(rolls) - reverse
+            roll_msg = (" + ".join([str(r) for r in rolls]) + f" = **{sum(rolls)}**. Wait, what's this? The gamble was rigged and knocks off **{reverse}**" +
+            f" from your total, which is now **{roll_sum}**! What a scam!")
+        else:
+            roll_sum = sum(rolls)
+            roll_msg = (" + ".join([str(r) for r in rolls]) + f" = **{roll_sum}**.")
+
         house_rolls = [randint(1, 6) for i in range(5)]
-        roll_msg = " + ".join([str(r) for r in rolls]) + f" = **{sum(rolls)}**"
         house_roll_msg = " + ".join([str(r) for r in house_rolls]) + f" = **{sum(house_rolls)}**"
         embed.add_field(name="You roll the following", value=roll_msg, inline=False)
         embed.add_field(name="The 🤖 rolls", value=house_roll_msg, inline=False)
 
-        if sum(rolls) == sum(house_rolls):
-            embed.add_field(name="It's a 🙈 **tie!** 🙈", value=f"Your balance remains: {coins:,}{self.cs}.", inline=False)
-        elif sum(rolls) < sum(house_rolls):
+        if roll_sum == sum(house_rolls):
+            embed.add_field(name="It's a 🙈 **tie!** 🙈", value=f"Your balance remains: {coins:,}{self.cs} and no gamble count was deducted.", inline=False)
+        elif roll_sum < sum(house_rolls):
             if (coins > 100000):
                 extra_loss = int(coins * 0.9)
             else:
@@ -293,7 +316,7 @@ class Coin(Cog):
             db.execute("UPDATE jackpot SET Amount = Amount + ? WHERE Jackpot = 0", jackpot_add)
             if (extra_loss > 0):
                 embed.add_field(name="🎲 You **lose!** 🎲", 
-                value=(f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. {jackpot_add}{self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}."),
+                value=(f"Your balance is now: **{coins-gamba_amt:,}**{self.cs}. {jackpot_add:,}{self.cs} are added to the pot valued at: **{jackpot_amt+jackpot_add:,}**{self.cs}."),
                 inline=False)
                 if (coins-gamba_amt-extra_loss) < 0:
                     final_bal = 10000 
@@ -301,7 +324,7 @@ class Coin(Cog):
                     db.execute(f"UPDATE ledger SET {self.cs} = 10000, Gambles = Gambles - 1 WHERE UserID = ?", ctx.author.id)
                 else:
                     final_bal = coins-gamba_amt-extra_loss
-                    final_msg = f"Your new balance is: **{final_bal}**{self.cs}!"
+                    final_msg = f"Your new balance is: **{final_bal:,}**{self.cs}!"
                     db.execute(f"UPDATE ledger SET {self.cs} = ?, Gambles = Gambles - 1 WHERE UserID = ?", final_bal, ctx.author.id)
                 embed.add_field(name="🚓 WEE WOO WEE WOO. UH OH! It's the rich people police! 👮", 
                 value=(f"They clobber you over the head, taking an additional **{extra_loss:,}**{self.cs} from you! " + final_msg),
@@ -325,15 +348,15 @@ class Coin(Cog):
             bonus_total = int((sum(bonus_amt)+sum(bonus_amt)*bonus_multiplier))
             if (bonus_dice > 0):
                 if (bonus_dice < 25):
-                    bonus_msg = (" + ".join([str(r) for r in bonus_amt]) + f" = {sum(bonus_amt)} x bonus = **{bonus_total}**{self.cs} awarded! " +
+                    bonus_msg = (" + ".join([str(r) for r in bonus_amt]) + f" = {sum(bonus_amt)} x bonus = **{bonus_total:,}**{self.cs} awarded! " +
                     f"Your new balance is **{gamba_amt+bonus_total+coins:,}**{self.cs}.")
                 else:
-                    bonus_msg = ("Numerous bonus dice were summed for a total of:" + f" {sum(bonus_amt)} x bonus = **{bonus_total}**{self.cs} awarded! " +
+                    bonus_msg = ("Numerous bonus dice were summed for a total of:" + f" {sum(bonus_amt):,} x bonus = **{bonus_total:,}**{self.cs} awarded! " +
                     f"Your new balance is **{gamba_amt+bonus_total+coins:,}**{self.cs}.")
                 embed.add_field(name="🎉 You **win!** 🎉", 
                 value=f"Your balance is now: {coins+gamba_amt:,}{self.cs}.",
                 inline=False)
-                embed.add_field(name=f"You receive **{bonus_dice}** bonus dice for betting big. You roll the following:",
+                embed.add_field(name=f"You receive **{bonus_dice:,}** bonus dice for betting big. You roll the following:",
                 value=bonus_msg,
                 inline=False)
                 db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ?, Gambles = Gambles - 1 WHERE UserID = ?", gamba_amt+bonus_total, ctx.author.id)
@@ -358,27 +381,33 @@ class Coin(Cog):
             timer = time.strftime("%Ss", time.gmtime(exc.retry_after))[1:]
             await ctx.send(f"In efforts to prevent addiction, try again in **{timer}**.")
 
-    @command(name="slap", aliases=["s"], brief="Slaps [user] and make them suffer")
+    @command(name="slap", aliases=["s", "S"], brief="Slaps [user] and make them suffer")
     @cooldown(1, 7200, BucketType.user)
     async def slap_member(self, ctx, member: Member, *, reason: Optional[str] = "being a weeb"):
         
         if member == ctx.author:
             await ctx.send("Now why the hell would you want to do that?")
+            self.slap_member.reset_cooldown(ctx)
             return
         author_coins, author_lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", ctx.author.id)
         target_coins, target_lvl = db.record(f"SELECT {self.cs}, Level FROM ledger WHERE UserID = ?", member.id)
 
         if (author_coins < 1):
             await ctx.send(f"You don't have the moral high ground to slap {member.display_name}! Try again when you have some {self.cs}.")
+            self.slap_member.reset_cooldown(ctx)
             return
 
-        if (target_coins == 0):
+        if (target_coins <= 5):
             await ctx.send(f"As you raise your hand, you stop because you feel bad for {member.display_name} because of how broke they are.")
+            self.slap_member.reset_cooldown(ctx)
             return
-        elif (target_coins <= 3):
-            tribute = randint(1, target_coins)
+        elif (target_coins <= 100):
+            tribute = randint(1, 5)
         else:
-            tribute = randint(1, 3)
+            tribute = int((randint(1, 5)/100)*target_coins)
+            if (tribute > 3000):
+                tribute = 3000
+
 
         rand_int = randint(0, 100)
         fail = [
@@ -398,7 +427,7 @@ class Coin(Cog):
             "Their soul is slapped from their body"
         ]
 
-        if (rand_int >= 25):
+        if (rand_int >= 10):
             db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} + ? WHERE UserID = ?", tribute, ctx.author.id)
             db.execute(f"UPDATE ledger SET {self.cs} = {self.cs} - ? WHERE UserID = ?", tribute, member.id)
             hit_msg = choice(success)
@@ -413,14 +442,15 @@ class Coin(Cog):
     @slap_member.error
     async def slap_member_error(self, ctx, exc):
         if isinstance(exc, BadArgument):
+            self.slap_member.reset_cooldown(ctx)
             await ctx.send("You slap the air, this makes you really tired for some reason.")
 
         elif isinstance(exc, CommandOnCooldown):
-            timer = time.strftime("%Mmin", time.gmtime(exc.retry_after))
+            timer = time.strftime("%Hh%Mmin", time.gmtime(exc.retry_after))
             await ctx.send(f"Your arms are too tired to slap right now. Try again in **{timer}**.")
 
 
-    @command(name="tip", aliases=["t"], brief="Tips <user> and give them a token of your appreciation for [reason]")
+    @command(name="tip", aliases=["t", "T"], brief="Tips <user> and give them a token of your appreciation for [reason]")
     @cooldown(1, 1800, BucketType.user)
     async def tip_member(self, ctx, member: Member, *, reason: Optional[str] = "no reason"):
 
@@ -447,6 +477,13 @@ class Coin(Cog):
         elif isinstance(exc, CommandOnCooldown):
             timer = time.strftime("%Mmin", time.gmtime(exc.retry_after))
             await ctx.send(f"You're being too generous. Please try again in **{timer}**.")
+
+    # @command(name="zzz", aliases=["z", "Z"], brief="test command")
+    # async def z_member(self, ctx, member: Member, *, reason: Optional[str] = "no reason"):
+    #     if (ctx.author.id == 61330577730576384):
+    #         db.execute(f"UPDATE ledger SET {self.cs} = 1000000000000, Level = 14 WHERE UserID = ?", ctx.author.id)
+    #         db.commit()
+    #     print("cmd executed")
 
     @Cog.listener()
     async def on_ready(self):

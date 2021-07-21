@@ -11,14 +11,16 @@ class Fun(Cog):
         self.coin = bot.COIN
         self.cs = bot.CS
         self.prefix = "$"
-    @command(name="version", aliases=["v"], brief="See updates")
+    @command(name="version", aliases=["v", "V"], brief="See updates")
     async def say_version(self, ctx):
         embed = Embed(title=self.coin, description=f"Update __{self.version}__",
         colour=0x783729, timestamp=datetime.utcnow())
-        fields = [(f"New Prefix", f"Prefix is now set to $ instead of !", False),
-        ("Gamble nerfs", f"Gambles are now capped at 10 gambles per hour for regular gamble, roulette has no limit but cannot hit jackpot table. RR multiplier has decreased.", False),
-        (f"Buff to {self.prefix}tip", f"Can now tip anyone (you must have 1{self.cs}) every 30m instead of 60m.", False),
-        (f"{self.prefix}u", f"4 new tiers of GPU have been added, Solar, Galaxy, Universe, Void.", False)]
+        fields = [(f"Slap Changes", f"Slaps now steal 1-5% of the target's balance, capped at a total of 3000{self.cs}, they are 50% more likely to succeed.", False),
+        ("Rich police", f"Gambles past 100k are now penalized in success rate (roughly 10%) and have an additional 90% tax on losses.", False),
+        ("$rank", f"Rankings now go by Prestige (more below) > GPU Tier > {self.cs} balance.", False),
+        (f"$prestige", (f"You may now prestige your GPU tier, prestige resets your KC amount to 0 but you keep all mining bonuses, and earns you a prestige rank." +
+        f" Prestige ranks multiplies your background mining rate, with a higher bonus based on your rank."), False),
+        (f"Buff to bg mining", (f"GPUs now multiplicatively mine {self.cs} instead of additively, so if your GPU was T10 (Dragon), the bonus would be 10 x 6 rolls x 10"), False)]
         for name, value, inline in fields:
             embed.add_field(name=name, value=value, inline=inline)
         embed.set_footer(text=f"Version {self.version}")

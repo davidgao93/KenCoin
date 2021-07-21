@@ -155,7 +155,7 @@ class Duels(Cog):
                 await self.bot.get_channel(self.cid).send(embed=embed_result)
                 db.commit()
             
-    @command(name="duel", aliases=["d"], brief=f"Start a duel with <amt> as the ante.")
+    @command(name="duel", aliases=["d", "D"], brief=f"Start a duel with <amt> as the ante.")
     async def set_duel(self, ctx, amt: int):
         coins, duel_active = db.record(f"SELECT {self.cs}, Duel FROM ledger WHERE UserID = ?", ctx.author.id) # both, unsued lvl so can be int instead of tuple
 

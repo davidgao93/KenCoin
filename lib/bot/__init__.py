@@ -115,6 +115,7 @@ class Bot(BotBase):
 			pass
 
 		elif isinstance(exc, MissingRequiredArgument):
+			ctx.slap_member.reset_cooldown(ctx)
 			await ctx.send("Missing parameters.")
 
 		elif isinstance(exc, CommandOnCooldown):

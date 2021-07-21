@@ -26,7 +26,7 @@ class HelpMenu(ListPageSource):
         self.ctx = ctx
         self.coin = bot.COIN
         self.cs = bot.CS
-        super().__init__(data, per_page=10)
+        super().__init__(data, per_page=11)
 
     async def write_page(self, menu, fields=[]):
         offset = (menu.current_page*self.per_page) + 1
@@ -65,7 +65,7 @@ class Help(Cog):
         embed.add_field(name="Command description", value=command.brief)
         await ctx.send(embed=embed)
 
-    @command(name="help", brief="Display the help menu")
+    @command(name="help", aliases=["h", "H"], brief="Display the help menu")
     async def show_help(self, ctx, cmd: Optional[str]):
         if cmd is None:
             menu = MenuPages(source = HelpMenu(self.bot, ctx, list(self.bot.commands)))

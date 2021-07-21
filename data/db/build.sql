@@ -21,12 +21,17 @@ CREATE TABLE IF NOT EXISTS ledger (
 	Mined integer DEFAULT 0,
 	Gambles integer Default 10,
 	Duel integer Default 0,
+	Prestige integer Default 0,
 	Lock text DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ALTER TABLE ledger
 -- ADD Gambles integer DEFAULT 10;
 
--- UPDATE ledger
--- SET KC = 1000
--- WHERE UserID = 61330577730576384;
+UPDATE ledger
+SET KC = 1000
+WHERE UserID = 61330577730576384;
+
+UPDATE ledger
+SET KC = 1000
+WHERE UserID = 866408616873820180;
